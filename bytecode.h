@@ -8,7 +8,7 @@
 #define ADDR_MASK 0x00000FFFFFFFFFFF
 
 typedef uint8_t hword;
-typedef uint64_t qword;
+typedef int64_t qword;
 typedef struct code Code;
 typedef struct bytecode {
     Code *code;
@@ -16,6 +16,8 @@ typedef struct bytecode {
 
 typedef enum {
     NOP,
+    CLF,
+    CMP,
     MOV,
     LDI,
     LDR,
@@ -47,6 +49,10 @@ typedef enum {
     JMP,
     JEQ,
     JNE,
+    JLE,
+    JLT,
+    JGE,
+    JGT,
     CALL,
     RET,
     HLT,

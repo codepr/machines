@@ -53,6 +53,7 @@ int bc_push_instr(Byte_Code *bc, qword instr)
     return 0;
 }
 
+// TODO: Dispatch the correct encoding based on opcode
 qword bc_encode_instruction(qword opcode, qword dst, qword src)
 {
     qword quad_word = opcode << 56;
@@ -62,6 +63,7 @@ qword bc_encode_instruction(qword opcode, qword dst, qword src)
     return quad_word;
 }
 
+// TODO: Dispatch the correct decoding based on opcode
 struct instruction bc_decode_instruction(qword e_instr)
 {
     hword op = (uint64_t)e_instr >> 56;

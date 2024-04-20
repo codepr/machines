@@ -5,18 +5,22 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#define STACK_SIZE 2048
+
+typedef enum { SUCCESS, E_DIV_BY_ZERO, E_UNKNOWN_INSTRUCTION } Exec_Result;
+
 typedef enum { AX, BX, CX, DX, NUM_REGISTERS } Register;
 
 typedef struct cpu {
     qword *bcode;
     qword *memory;
-    qword *stack;
+    qword stack[STACK_SIZE];
     // Registers
-    uint64_t *pc;
-    uint64_t *sp;
+    qword pc;
+    qword *sp;
     qword r[NUM_REGISTERS];
     // Flags
-    uint64_t flags[3];
+    int64_t flags[3];
     bool run;
 } Cpu;
 
@@ -26,6 +30,6 @@ void cpu_free(Cpu *cpu);
 
 void cpu_reset(Cpu *cpu, qword *code);
 
-void cpu_run(Cpu *cpu);
+Exec_Result cpu_run(Cpu *cpu);
 
 #endif // CPU_H

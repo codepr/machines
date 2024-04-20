@@ -2,11 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 
-struct instruction {
-    hword op;
-    qword src, dst;
-};
-
 typedef enum { SUCCESS, E_DIV_BY_ZERO, E_UNKNOWN_INSTRUCTION } Exec_Result;
 
 static void reset(Cpu *cpu, qword *code)
@@ -20,26 +15,27 @@ static void reset(Cpu *cpu, qword *code)
 
 static qword fetch(Cpu *cpu) { return *cpu->pc++; }
 
-static struct instruction decode(Cpu *cpu, qword e_instr)
+static struct instruction decode(qword einstr)
 {
-    hword op = (uint64_t)e_instr >> 56;
-    qword dst = (e_instr & DEST_MASK) >> 48;
-    qword src = e_instr & ADDR_MASK;
-
-    return (struct instruction){.op = op, .src = src, .dst = dst};
+    return bc_decode_instruction(einstr);
 }
 
 static Exec_Result execute(Cpu *cpu, struct instruction *instr)
 {
     switch (instr->op) {
+    case NOP: {
+        break;
+    }
+    case MOV: {
+        cpu->r[instr->dst] = cpu->r[instr->src];
+        break;
+    }
     case ADD: {
         cpu->r[instr->dst] += cpu->r[instr->src];
-        printf("ADD\n");
         break;
     }
     case ADI: {
         cpu->r[instr->dst] += instr->src;
-        printf("ADI %ld\n", cpu->r[instr->dst]);
         break;
     }
     case HLT:
@@ -75,13 +71,15 @@ void cpu_free(Cpu *cpu)
     free(cpu);
 }
 
+void cpu_reset(Cpu *cpu, qword *code) { reset(cpu, code); }
+
 void cpu_run(Cpu *cpu)
 {
     Exec_Result r = SUCCESS;
     cpu->run = true;
     while (cpu->run && r == SUCCESS) {
         qword encoded_instr = fetch(cpu);
-        struct instruction instr = decode(cpu, encoded_instr);
+        struct instruction instr = decode(encoded_instr);
         r = execute(cpu, &instr);
     }
 }

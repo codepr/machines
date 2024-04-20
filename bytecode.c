@@ -53,25 +53,57 @@ int bc_push_instr(Byte_Code *bc, qword instr)
     return 0;
 }
 
-static qword encode_instruction(qword opcode, qword dst, qword src)
+qword bc_encode_instruction(qword opcode, qword dst, qword src)
 {
     qword quad_word = opcode << 56;
-    quad_word = quad_word | (dst << 48);
-    quad_word = quad_word | (src & ADDR_MASK);
+    quad_word |= (dst << 48);
+    quad_word |= (src & ADDR_MASK);
 
     return quad_word;
 }
 
-qword *bc_code(const Byte_Code *const bc) { return bc->code->code; }
+struct instruction bc_decode_instruction(qword e_instr)
+{
+    hword op = (uint64_t)e_instr >> 56;
+    qword dst = (e_instr & DEST_MASK) >> 48;
+    qword src = e_instr & ADDR_MASK;
+
+    return (struct instruction){.op = op, .src = src, .dst = dst};
+}
+
+qword *bc_code(const Byte_Code *const bc)
+{
+    if (!bc)
+        return NULL;
+    return bc->code->code;
+}
+
+Byte_Code *bc_create(qword *bytecode, size_t length)
+{
+    Byte_Code *bc = malloc(sizeof(*bc));
+    if (!bc)
+        return NULL;
+
+    bc->code = code_create();
+    if (!bc->code) {
+        free(bc);
+        return NULL;
+    }
+
+    for (size_t i = 0; i < length; ++i)
+        bc_push_instr(bc, bytecode[i]);
+
+    return bc;
+}
 
 Byte_Code *bc_load(const char *path)
 {
     (void)path;
     Byte_Code *bc = malloc(sizeof(*bc));
     bc->code = code_create();
-    bc_push_instr(bc, encode_instruction(ADI, 0, 7));
-    bc_push_instr(bc, encode_instruction(ADI, 0, 7));
-    bc_push_instr(bc, encode_instruction(HLT, 0, 0));
+    bc_push_instr(bc, bc_encode_instruction(ADI, 0, 7));
+    bc_push_instr(bc, bc_encode_instruction(ADI, 0, 7));
+    bc_push_instr(bc, bc_encode_instruction(HLT, 0, 0));
     return bc;
 }
 

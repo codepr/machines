@@ -4,6 +4,12 @@ CFLAGS=-Wall -Werror -pedantic -ggdb -std=c11 -fsanitize=address -fsanitize=unde
 cpu: main.c
 	$(CC) $(CFLAGS) -o T800-64 main.c cpu.c bytecode.c
 
+test: tests.c
+	$(CC) $(CFLAGS) -o tests tests.c cpu.c bytecode.c
+
+all: test cpu
+
 clean:
 	@rm -rf *.o
 	@rm -rf T800-64
+	@rm -rf tests

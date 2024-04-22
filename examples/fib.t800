@@ -1,0 +1,15 @@
+; Simple Factorial implementation
+; Factorial(10)
+
+.main
+    ; Initialize variables
+    LDI AX, 10   ; Initialize starting value 10
+    LDI BX, 9    ; Initialize second value to AX - 1
+
+    ; Factorial loop
+    loop:
+        MUL AX, BX  ; AX = AX * AX - 1
+        DEC BX      ; BX = BX - 1 decrement the counter
+        CMI BX, 0   ; Check if 0 is reached
+        JNE loop    ; Jump back to loop if BX is greater than 0
+        HLT          ; Halt execution

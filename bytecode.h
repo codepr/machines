@@ -18,6 +18,7 @@ typedef enum {
     NOP,
     CLF,
     CMP,
+    CMI,
     MOV,
     LDI,
     LDR,
@@ -56,17 +57,23 @@ typedef enum {
     CALL,
     RET,
     HLT,
-    INSTRUCTION_NUM
+    NUM_INSTRUCTIONS
 } Instruction_Set;
+
+typedef enum { AX, BX, CX, DX, NUM_REGISTERS } Register;
 
 struct instruction {
     hword op;
     qword src, dst;
 };
 
-Byte_Code *bc_create(qword *bytecode, size_t length);
+Byte_Code *bc_create(void);
+
+Byte_Code *bc_from_raw(qword *bytecode, size_t length);
 
 Byte_Code *bc_load(const char *path);
+
+void bc_disassemble(const Byte_Code *const bc);
 
 qword *bc_code(const Byte_Code *const bc);
 

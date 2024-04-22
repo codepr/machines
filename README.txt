@@ -23,6 +23,7 @@
   0x01 |  MOV
   0x02 |  CLF
   0x03 |  CMP
+  0x03 |  CMI
   0x04 |  LDI
   0x05 |  LDR
   0x06 |  STI
@@ -103,5 +104,5 @@
  ----------------+---------------------------------------------------------
  JMP 0x24        | Unconditional jump to PC 0x24
  JEQ 0x24        | Jump when equal to PC 0x24
- JNE 0x24	  | Jump when not equal to PC 0x24
+ JNE 0x24	     | Jump when not equal to PC 0x24
  CLL 0x1D        | Jump to subroutine, store current PC into the stack

@@ -142,43 +142,47 @@ static Exec_Result execute(Cpu *cpu, struct instruction *instr)
         set_flags(cpu, cpu->r[instr->dst], cpu->r[instr->src]);
         break;
     }
+    case CMI: {
+        set_flags(cpu, cpu->r[instr->dst], instr->src);
+        break;
+    }
     case JMP: {
-        cpu->pc = instr->src;
+        cpu->pc = instr->dst;
         break;
     }
     case JEQ: {
         if (cpu->flags[0])
-            cpu->pc = instr->src;
+            cpu->pc = instr->dst;
         break;
     }
     case JNE: {
         if (!cpu->flags[0])
-            cpu->pc = instr->src;
+            cpu->pc = instr->dst;
         break;
     }
     case JLE: {
         if (cpu->flags[0] || cpu->flags[1])
-            cpu->pc = instr->src;
+            cpu->pc = instr->dst;
         break;
     }
     case JLT: {
         if (!cpu->flags[0] && cpu->flags[1])
-            cpu->pc = instr->src;
+            cpu->pc = instr->dst;
         break;
     }
     case JGE: {
         if (cpu->flags[0] || cpu->flags[2])
-            cpu->pc = instr->src;
+            cpu->pc = instr->dst;
         break;
     }
     case JGT: {
         if (!cpu->flags[0] && cpu->flags[2])
-            cpu->pc = instr->src;
+            cpu->pc = instr->dst;
         break;
     }
     case CALL: {
         *cpu->sp++ = (cpu->pc - 1);
-        cpu->pc = instr->src;
+        cpu->pc = instr->dst;
         break;
     }
     case RET: {
@@ -231,4 +235,10 @@ Exec_Result cpu_run(Cpu *cpu)
     }
 
     return r;
+}
+
+void cpu_print_registers(const Cpu *const cpu)
+{
+    printf("AX: %lu BX: %lu CX: %lu DX: %lu\n", cpu->r[AX], cpu->r[BX],
+           cpu->r[CX], cpu->r[DX]);
 }

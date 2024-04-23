@@ -207,15 +207,123 @@ static Instruction_Set str_to_instruction(const char *str)
     return -1;
 }
 
+#define NAME_MAX_LEN 64
+
 struct label {
-    char name[64];
+    char name[NAME_MAX_LEN];
     uint64_t offset;
 };
 
 typedef struct {
-    struct label names[64];
+    struct label names[NAME_MAX_LEN];
     size_t length;
 } Labels;
+
+#define is_label(token) token[strlen(token) - 1] == ':'
+
+static inline bool is_number(const char *str)
+{
+    while (*str) {
+        if (isdigit(*str++) == 0)
+            return false;
+    }
+    return true;
+}
+
+static int64_t parse_hex(const char *hex)
+{
+    int64_t val = -1;
+
+    char str[16];
+    char *pstr = &str[0];
+    while (hex && isxdigit(*hex))
+        *pstr++ = *hex++;
+
+    if (*hex != ']') {
+        fprintf(stderr, "Malformed memory address\n");
+        exit(EXIT_FAILURE);
+    }
+
+    char *endptr;
+    // To distinguish success/failure after call
+    errno = 0;
+
+    val = strtol(str, &endptr, 16);
+
+    // Check for various possible errors.
+    if (errno != 0) {
+        perror("strtol");
+        exit(EXIT_FAILURE);
+    }
+
+    if (endptr == str) {
+        fprintf(stderr, "No digits were found\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return val;
+}
+
+static int64_t parse_operand(const char *operand, Labels *labels)
+{
+    int64_t op_value = -1;
+    if (strncmp(operand, "AX", 2) == 0)
+        op_value = AX;
+    else if (strncmp(operand, "BX", 2) == 0)
+        op_value = BX;
+    else if (strncmp(operand, "CX", 2) == 0)
+        op_value = CX;
+    else if (strncmp(operand, "DX", 2) == 0)
+        op_value = DX;
+    else {
+        if (is_number(operand)) {
+            // Immediate value
+            char *endptr;
+            // To distinguish success/failure after call
+            errno = 0;
+
+            op_value = strtol(operand, &endptr, 10);
+
+            // Check for various possible errors.
+            if (errno != 0) {
+                perror("strtol");
+                exit(EXIT_FAILURE);
+            }
+
+            if (endptr == operand) {
+                fprintf(stderr, "No digits were found\n");
+                exit(EXIT_FAILURE);
+            }
+        } else if (strncmp(operand + 1, "0x", 2) == 0) {
+            // Immediate value hex format
+            op_value = parse_hex(operand + 3);
+        } else if (*operand == '[') {
+            // Hex value
+            if (strncmp(operand + 1, "0x", 2) == 0) {
+                op_value = parse_hex(operand + 3);
+            }
+        } else {
+            // label
+            bool found = false;
+            // Label case e.g. a JMP, check for the presence of the label
+            // in the labels array
+            for (size_t i = 0; i < labels->length && !found; ++i) {
+                if (strncmp(operand, labels->names[i].name, strlen(operand)) ==
+                    0) {
+                    op_value = labels->names[i].offset;
+                    found = true;
+                }
+            }
+
+            if (!found) {
+                fprintf(stderr, "Label not found\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+
+    return op_value;
+}
 
 static struct instruction parse_instruction(const char *op, const char *dst,
                                             const char *src, Labels *labels)
@@ -228,151 +336,12 @@ static struct instruction parse_instruction(const char *op, const char *dst,
     if (!dst || *dst == '\0')
         goto exit;
 
-    if (strncmp(dst, "AX", 2) == 0)
-        instr.dst = AX;
-    else if (strncmp(dst, "BX", 2) == 0)
-        instr.dst = BX;
-    else if (strncmp(dst, "CX", 2) == 0)
-        instr.dst = CX;
-    else if (strncmp(dst, "DX", 2) == 0)
-        instr.dst = DX;
-    else {
-        if (*dst == '[') {
-            // Hex value
-            if (strncmp(dst + 1, "0x", 2) == 0) {
-                dst += 3;
-                char str[16];
-                char *pstr = &str[0];
-                while (dst && isxdigit(*dst))
-                    *pstr++ = *dst++;
-
-                if (*dst != ']') {
-                    fprintf(stderr, "Malformed memory address\n");
-                    exit(EXIT_FAILURE);
-                }
-
-                char *endptr;
-                // To distinguish success/failure after call
-                errno = 0;
-
-                instr.dst = strtol(str, &endptr, 16);
-
-                // Check for various possible errors.
-                if (errno != 0) {
-                    perror("strtol");
-                    exit(EXIT_FAILURE);
-                }
-
-                if (endptr == str) {
-                    fprintf(stderr, "No digits were found\n");
-                    exit(EXIT_FAILURE);
-                }
-            }
-        } else {
-            bool found = false;
-            // Label case e.g. a JMP, check for the presence of the label
-            // in the labels array
-            for (size_t i = 0; i < labels->length && !found; ++i) {
-                if (strncmp(dst, labels->names[i].name, strlen(dst)) == 0) {
-                    instr.dst = labels->names[i].offset;
-                    found = true;
-                }
-            }
-
-            if (!found) {
-                fprintf(stderr, "Label not found\n");
-                exit(EXIT_FAILURE);
-            }
-        }
-    }
+    instr.dst = parse_operand(dst, labels);
 
     if (!src || *src == '\0')
         goto exit;
 
-    if (strncmp(src, "AX", 2) == 0)
-        instr.src = AX;
-    else if (strncmp(src, "BX", 2) == 0)
-        instr.src = BX;
-    else if (strncmp(src, "CX", 2) == 0)
-        instr.src = CX;
-    else if (strncmp(src, "DX", 2) == 0)
-        instr.src = DX;
-    else {
-        if (*src == '[') {
-            // Hex value
-            if (strncmp(src + 1, "0x", 2) == 0) {
-                src++;
-                char str[16];
-                char *pstr = &str[0];
-                while (src && isxdigit(src))
-                    *pstr++ = *src++;
-
-                if (*src != ']') {
-                    fprintf(stderr, "Malformed memory address\n");
-                    exit(EXIT_FAILURE);
-                }
-
-                char *endptr;
-                // To distinguish success/failure after call
-                errno = 0;
-
-                instr.src = strtol(str, &endptr, 16);
-
-                // Check for various possible errors.
-                if (errno != 0) {
-                    perror("strtol");
-                    exit(EXIT_FAILURE);
-                }
-
-                if (endptr == str) {
-                    fprintf(stderr, "No digits were found\n");
-                    exit(EXIT_FAILURE);
-                }
-            }
-        } else {
-            // Immediate value
-            char str[16];
-            char *endptr;
-            char *pstr = &str[0];
-            if (strncmp(src + 1, "0x", 2) == 0) {
-                src++;
-                while (src && isxdigit(src))
-                    *pstr++ = *src++;
-
-                // To distinguish success/failure after call
-                errno = 0;
-
-                instr.src = strtol(str, &endptr, 16);
-
-                // Check for various possible errors.
-                if (errno != 0) {
-                    perror("strtol");
-                    exit(EXIT_FAILURE);
-                }
-
-                if (endptr == str) {
-                    fprintf(stderr, "No digits were found\n");
-                    exit(EXIT_FAILURE);
-                }
-            } else {
-                // To distinguish success/failure after call
-                errno = 0;
-
-                instr.src = strtol(src, &endptr, 10);
-
-                // Check for various possible errors.
-                if (errno != 0) {
-                    perror("strtol");
-                    exit(EXIT_FAILURE);
-                }
-
-                if (endptr == src) {
-                    fprintf(stderr, "No digits were found\n");
-                    exit(EXIT_FAILURE);
-                }
-            }
-        }
-    }
+    instr.src = parse_operand(src, labels);
 
 exit:
     return instr;
@@ -441,33 +410,36 @@ static const char *instruction_to_str(const struct instruction *instr,
 
     switch (idef.dst) {
     case OP_IMM: {
-        nbytes = snprintf(dst, 64, "%s %li", idef.name, instr->dst);
+        nbytes = snprintf(dst, NAME_MAX_LEN, "%s %li", idef.name, instr->dst);
         break;
     }
     case OP_REG: {
-        nbytes = snprintf(dst, 64, "%s %s", idef.name, reg_to_str[instr->dst]);
+        nbytes = snprintf(dst, NAME_MAX_LEN, "%s %s", idef.name,
+                          reg_to_str[instr->dst]);
         break;
     }
     case OP_ADDR: {
-        nbytes = snprintf(dst, 64, "%s [0x%li]", idef.name, instr->dst);
+        nbytes =
+            snprintf(dst, NAME_MAX_LEN, "%s [0x%li]", idef.name, instr->dst);
         break;
     }
     default:
-        nbytes = snprintf(dst, 64, "%s", idef.name);
+        nbytes = snprintf(dst, NAME_MAX_LEN, "%s", idef.name);
         break;
     }
 
     switch (idef.src) {
     case OP_IMM: {
-        nbytes = snprintf(dst + nbytes, 64, " %li", instr->src);
+        nbytes = snprintf(dst + nbytes, NAME_MAX_LEN, " %li", instr->src);
         break;
     }
     case OP_REG: {
-        nbytes = snprintf(dst + nbytes, 64, " %s", reg_to_str[instr->src]);
+        nbytes =
+            snprintf(dst + nbytes, NAME_MAX_LEN, " %s", reg_to_str[instr->src]);
         break;
     }
     case OP_ADDR: {
-        nbytes = snprintf(dst + nbytes, 64, " [0x%li]", instr->src);
+        nbytes = snprintf(dst + nbytes, NAME_MAX_LEN, " [0x%li]", instr->src);
         break;
     }
     default:
@@ -483,16 +455,20 @@ void bc_disassemble(const Byte_Code *const bc)
     size_t i = 0;
 
     qword *code = bc_code(bc);
-    char instr_str[64];
+    char instr_str[NAME_MAX_LEN];
 
-    printf("\n# Off Assembly Hex\n");
-    printf("----------------------\n\n");
+    printf("\nOffset  Instructions    Words\n");
+    printf("---------------------------------------------------\n\n");
 
     while (i < bc->code->length) {
         memset(instr_str, 0x00, sizeof(instr_str));
         const struct instruction ins = bc_decode_instruction(code[i]);
-        printf("%04lx %s\t(0x%lx)", i, instruction_to_str(&ins, instr_str),
-               code[i]);
+        printf("0x%04lX\t%-16s0x%04X 0x%04X 0x%04X 0x%04X", i,
+               instruction_to_str(&ins, instr_str),
+               (unsigned int)(code[i] >> 48 & 0xFFFF),
+               (unsigned int)(code[i] >> 32 & 0xFFFF),
+               (unsigned int)(code[i] >> 16 & 0xFFFF),
+               (unsigned int)(code[i] >> 0 & 0xFFFF));
 
         printf("\n");
         i++;
@@ -508,7 +484,7 @@ static Labels scan_labels(FILE *fp)
 
     Labels labels;
 
-    char line[0xFFF], label[64];
+    char line[0xFFF], label[NAME_MAX_LEN];
     char *line_ptr;
     size_t line_nr = 0;
 
@@ -516,6 +492,8 @@ static Labels scan_labels(FILE *fp)
         line_ptr = line;
 
         strip_spaces(&line_ptr);
+
+        memset(label, 0x00, NAME_MAX_LEN);
 
         if (*line_ptr == '\0' || *line_ptr == ';' || *line_ptr == '.')
             continue;
@@ -525,12 +503,13 @@ static Labels scan_labels(FILE *fp)
         size_t token_length = strlen(label);
 
         if (label[token_length - 1] == ':') {
-            if (token_length > 64) {
+            if (token_length > NAME_MAX_LEN) {
                 fprintf(stderr, "Label too long: %s\n", label);
                 exit(EXIT_FAILURE);
             }
             labels.names[labels.length].offset = line_nr;
             strncpy(labels.names[labels.length].name, label, token_length);
+            printf("Label %s\n", labels.names[labels.length].name);
             labels.length++;
         }
 
@@ -539,8 +518,6 @@ static Labels scan_labels(FILE *fp)
 
     return labels;
 }
-
-#define is_label(token) token[strlen(token) - 1] == ':'
 
 enum { TOKEN_OP, TOKEN_DST, TOKEN_SRC, NUM_TOKENS };
 
@@ -558,7 +535,7 @@ Byte_Code *bc_load(const char *path)
         goto exit;
 
     char line[0xfff]; // instr[16], dst[8], src[8];
-    char tokens[NUM_TOKENS][64];
+    char tokens[NUM_TOKENS][NAME_MAX_LEN];
     int ntokens = 0;
     size_t line_nr = 0;
     char *line_ptr;

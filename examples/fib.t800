@@ -12,4 +12,4 @@
         DEC BX      ; BX = BX - 1 decrement the counter
         CMI BX, 0   ; Check if 0 is reached
         JNE loop    ; Jump back to loop if BX is greater than 0
-        HLT          ; Halt execution
+        HLT         ; Halt execution

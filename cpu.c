@@ -180,6 +180,30 @@ static Exec_Result execute(Cpu *cpu, struct instruction *instr)
             cpu->pc = instr->dst;
         break;
     }
+    case AND: {
+        cpu->r[instr->dst] &= cpu->r[instr->src];
+        break;
+    }
+    case BOR: {
+        cpu->r[instr->dst] |= cpu->r[instr->src];
+        break;
+    }
+    case XOR: {
+        cpu->r[instr->dst] ^= cpu->r[instr->src];
+        break;
+    }
+    case NOT: {
+        cpu->r[instr->dst] = -cpu->r[instr->src];
+        break;
+    }
+    case SHR: {
+        cpu->r[instr->dst] >>= cpu->r[instr->src];
+        break;
+    }
+    case SHL: {
+        cpu->r[instr->dst] <<= cpu->r[instr->src];
+        break;
+    }
     case CALL: {
         *cpu->sp++ = (cpu->pc - 1);
         cpu->pc = instr->dst;

@@ -509,7 +509,6 @@ static Labels scan_labels(FILE *fp)
             }
             labels.names[labels.length].offset = line_nr;
             strncpy(labels.names[labels.length].name, label, token_length);
-            printf("Label %s\n", labels.names[labels.length].name);
             labels.length++;
         }
 
@@ -534,11 +533,11 @@ Byte_Code *bc_load(const char *path)
     if (!bc)
         goto exit;
 
-    char line[0xfff]; // instr[16], dst[8], src[8];
+    char line[0xFFF];
     char tokens[NUM_TOKENS][NAME_MAX_LEN];
+    char *line_ptr;
     int ntokens = 0;
     size_t line_nr = 0;
-    char *line_ptr;
 
     Labels labels = scan_labels(fp);
 
@@ -590,8 +589,6 @@ Byte_Code *bc_load(const char *path)
     }
 
     fclose(fp);
-
-    bc_disassemble(bc);
 
     return bc;
 

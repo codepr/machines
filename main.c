@@ -20,6 +20,8 @@ int main(void)
     if (!bc)
         die(__LINE__, "Error parsing source");
 
+    bc_disassemble(bc);
+
     Cpu *cpu = cpu_create(bc, 32768);
     if (!cpu)
         die(__LINE__, "Error creating CPU");

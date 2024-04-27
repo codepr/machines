@@ -263,6 +263,6 @@ Exec_Result cpu_run(Cpu *cpu)
 
 void cpu_print_registers(const Cpu *const cpu)
 {
-    printf("AX: %lu BX: %lu CX: %lu DX: %lu\n", cpu->r[AX], cpu->r[BX],
+    printf("AX: %llu BX: %llu CX: %llu DX: %llu\n", cpu->r[AX], cpu->r[BX],
            cpu->r[CX], cpu->r[DX]);
 }

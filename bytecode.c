@@ -139,70 +139,90 @@ static inline void read_token(char **str, char *dest)
 
 static Instruction_Set str_to_instruction(const char *str)
 {
-    if (strncmp(str, "NOP", 3) == 0)
+    if (strncasecmp(str, "NOP", 3) == 0)
         return NOP;
-    if (strncmp(str, "HLT", 3) == 0)
+    if (strncasecmp(str, "HLT", 3) == 0)
         return HLT;
-    if (strncmp(str, "MOV", 3) == 0)
+    if (strncasecmp(str, "MOV", 3) == 0)
         return MOV;
-    if (strncmp(str, "CLF", 3) == 0)
+    if (strncasecmp(str, "MOD", 3) == 0)
+        return MOD;
+    if (strncasecmp(str, "MDI", 3) == 0)
+        return MOD;
+    if (strncasecmp(str, "CLF", 3) == 0)
         return CLF;
-    if (strncmp(str, "CMP", 3) == 0)
+    if (strncasecmp(str, "CMP", 3) == 0)
         return CMP;
-    if (strncmp(str, "CMI", 3) == 0)
+    if (strncasecmp(str, "CMI", 3) == 0)
         return CMI;
-    if (strncmp(str, "LDI", 3) == 0)
+    if (strncasecmp(str, "LDI", 3) == 0)
         return LDI;
-    if (strncmp(str, "LDR", 3) == 0)
+    if (strncasecmp(str, "LDR", 3) == 0)
         return LDR;
-    if (strncmp(str, "STI", 3) == 0)
+    if (strncasecmp(str, "STI", 3) == 0)
         return STI;
-    if (strncmp(str, "STR", 3) == 0)
+    if (strncasecmp(str, "STR", 3) == 0)
         return STR;
-    if (strncmp(str, "PSR", 3) == 0)
+    if (strncasecmp(str, "PSR", 3) == 0)
         return PSR;
-    if (strncmp(str, "PSM", 3) == 0)
+    if (strncasecmp(str, "PSM", 3) == 0)
         return PSM;
-    if (strncmp(str, "PSI", 3) == 0)
+    if (strncasecmp(str, "PSI", 3) == 0)
         return PSI;
-    if (strncmp(str, "POM", 3) == 0)
+    if (strncasecmp(str, "POM", 3) == 0)
         return POM;
-    if (strncmp(str, "POP", 3) == 0)
+    if (strncasecmp(str, "POP", 3) == 0)
         return POP;
-    if (strncmp(str, "ADD", 3) == 0)
+    if (strncasecmp(str, "ADD", 3) == 0)
         return ADD;
-    if (strncmp(str, "ADI", 3) == 0)
+    if (strncasecmp(str, "ADI", 3) == 0)
         return ADI;
-    if (strncmp(str, "SUB", 3) == 0)
+    if (strncasecmp(str, "SUB", 3) == 0)
         return SUB;
-    if (strncmp(str, "SBI", 3) == 0)
+    if (strncasecmp(str, "SBI", 3) == 0)
         return SBI;
-    if (strncmp(str, "MUL", 3) == 0)
+    if (strncasecmp(str, "MUL", 3) == 0)
         return MUL;
-    if (strncmp(str, "MLI", 3) == 0)
+    if (strncasecmp(str, "MLI", 3) == 0)
         return MLI;
-    if (strncmp(str, "DIV", 3) == 0)
+    if (strncasecmp(str, "DIV", 3) == 0)
         return DIV;
-    if (strncmp(str, "DVI", 3) == 0)
+    if (strncasecmp(str, "DVI", 3) == 0)
         return DVI;
-    if (strncmp(str, "INC", 3) == 0)
+    if (strncasecmp(str, "INC", 3) == 0)
         return INC;
-    if (strncmp(str, "DEC", 3) == 0)
+    if (strncasecmp(str, "DEC", 3) == 0)
         return DEC;
-    if (strncmp(str, "CALL", 4) == 0)
+    if (strncasecmp(str, "CALL", 4) == 0)
         return CALL;
-    if (strncmp(str, "RET", 3) == 0)
+    if (strncasecmp(str, "RET", 3) == 0)
         return RET;
-    if (strncmp(str, "JMP", 3) == 0)
+    if (strncasecmp(str, "JMP", 3) == 0)
         return JMP;
-    if (strncmp(str, "JNE", 3) == 0)
+    if (strncasecmp(str, "JNE", 3) == 0)
         return JNE;
-    if (strncmp(str, "JEQ", 3) == 0)
+    if (strncasecmp(str, "JEQ", 3) == 0)
         return JEQ;
-    if (strncmp(str, "JLT", 3) == 0)
+    if (strncasecmp(str, "JLT", 3) == 0)
         return JLT;
-    if (strncmp(str, "JGE", 3) == 0)
+    if (strncasecmp(str, "JGE", 3) == 0)
         return JGE;
+    if (strncasecmp(str, "AND", 3) == 0)
+        return AND;
+    if (strncasecmp(str, "BOR", 3) == 0)
+        return BOR;
+    if (strncasecmp(str, "BOR", 3) == 0)
+        return BOR;
+    if (strncasecmp(str, "XOR", 3) == 0)
+        return XOR;
+    if (strncasecmp(str, "NOT", 3) == 0)
+        return NOT;
+    if (strncasecmp(str, "SHL", 3) == 0)
+        return SHL;
+    if (strncasecmp(str, "SHR", 3) == 0)
+        return SHR;
+    if (strncasecmp(str, "NOT", 3) == 0)
+        return NOT;
 
     return -1;
 }
@@ -267,13 +287,13 @@ static int64_t parse_hex(const char *hex)
 static int64_t parse_operand(const char *operand, Labels *labels)
 {
     int64_t op_value = -1;
-    if (strncmp(operand, "AX", 2) == 0)
+    if (strncasecmp(operand, "AX", 2) == 0)
         op_value = AX;
-    else if (strncmp(operand, "BX", 2) == 0)
+    else if (strncasecmp(operand, "BX", 2) == 0)
         op_value = BX;
-    else if (strncmp(operand, "CX", 2) == 0)
+    else if (strncasecmp(operand, "CX", 2) == 0)
         op_value = CX;
-    else if (strncmp(operand, "DX", 2) == 0)
+    else if (strncasecmp(operand, "DX", 2) == 0)
         op_value = DX;
     else {
         if (is_number(operand)) {
@@ -294,12 +314,12 @@ static int64_t parse_operand(const char *operand, Labels *labels)
                 fprintf(stderr, "No digits were found\n");
                 exit(EXIT_FAILURE);
             }
-        } else if (strncmp(operand + 1, "0x", 2) == 0) {
+        } else if (strncasecmp(operand + 1, "0x", 2) == 0) {
             // Immediate value hex format
             op_value = parse_hex(operand + 3);
         } else if (*operand == '[') {
             // Hex value
-            if (strncmp(operand + 1, "0x", 2) == 0) {
+            if (strncasecmp(operand + 1, "0x", 2) == 0) {
                 op_value = parse_hex(operand + 3);
             }
         } else {
@@ -410,7 +430,7 @@ static const char *instruction_to_str(const struct instruction *instr,
 
     switch (idef.dst) {
     case OP_IMM: {
-        nbytes = snprintf(dst, NAME_MAX_LEN, "%s %li", idef.name, instr->dst);
+        nbytes = snprintf(dst, NAME_MAX_LEN, "%s %lli", idef.name, instr->dst);
         break;
     }
     case OP_REG: {
@@ -420,7 +440,7 @@ static const char *instruction_to_str(const struct instruction *instr,
     }
     case OP_ADDR: {
         nbytes =
-            snprintf(dst, NAME_MAX_LEN, "%s [0x%li]", idef.name, instr->dst);
+            snprintf(dst, NAME_MAX_LEN, "%s [0x%lli]", idef.name, instr->dst);
         break;
     }
     default:
@@ -430,7 +450,7 @@ static const char *instruction_to_str(const struct instruction *instr,
 
     switch (idef.src) {
     case OP_IMM: {
-        nbytes = snprintf(dst + nbytes, NAME_MAX_LEN, " %li", instr->src);
+        nbytes = snprintf(dst + nbytes, NAME_MAX_LEN, " %lli", instr->src);
         break;
     }
     case OP_REG: {
@@ -439,7 +459,7 @@ static const char *instruction_to_str(const struct instruction *instr,
         break;
     }
     case OP_ADDR: {
-        nbytes = snprintf(dst + nbytes, NAME_MAX_LEN, " [0x%li]", instr->src);
+        nbytes = snprintf(dst + nbytes, NAME_MAX_LEN, " [0x%lli]", instr->src);
         break;
     }
     default:
@@ -482,7 +502,7 @@ static Labels scan_labels(FILE *fp)
         exit(EXIT_FAILURE);
     }
 
-    Labels labels;
+    Labels labels = {0};
 
     char line[0xFFF], label[NAME_MAX_LEN];
     char *line_ptr;
@@ -537,7 +557,6 @@ Byte_Code *bc_load(const char *path)
     char tokens[NUM_TOKENS][NAME_MAX_LEN];
     char *line_ptr;
     int ntokens = 0;
-    size_t line_nr = 0;
 
     Labels labels = scan_labels(fp);
 
@@ -545,7 +564,6 @@ Byte_Code *bc_load(const char *path)
 
     while (fgets(line, 0xFFF, fp)) {
         ntokens = 0;
-        line_nr++;
         line_ptr = line;
         strip_spaces(&line_ptr);
         memset(tokens, 0x00, NUM_TOKENS * sizeof(tokens[0]));

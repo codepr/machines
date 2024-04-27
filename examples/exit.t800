@@ -1,0 +1,4 @@
+.main
+    ldi ax, 1
+    xor bx, bx
+    syscall

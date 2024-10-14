@@ -433,7 +433,13 @@ static struct instruction parse_instruction(const char *op, const char *dst,
 {
     struct instruction instr;
 
-    instr.op = str_to_instruction(op);
+    int opcode = str_to_instruction(op);
+    if (opcode < 0) {
+        fprintf(stderr, "unrcognized instruction %s\n", op);
+        exit(EXIT_FAILURE);
+    }
+
+    instr.op = opcode;
 
     // Maybe parse dest operand
     if (!dst || *dst == '\0')
@@ -509,6 +515,11 @@ static const Instruction_Def instr_defs[NUM_INSTRUCTIONS] = {
 static const char *instruction_to_str(const struct instruction *instr,
                                       char *dst)
 {
+    if (instr->op < 0 || instr->op >= NUM_INSTRUCTIONS) {
+        fprintf(stderr, "unrecognized assembly instruction %d\n", instr->op);
+        return NULL;
+    }
+
     Instruction_Def idef = instr_defs[instr->op];
     size_t nbytes        = 0;
 

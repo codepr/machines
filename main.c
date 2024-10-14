@@ -16,17 +16,20 @@ static void die(int line_nr, const char *fmt, ...)
 
 int main(void)
 {
-    Byte_Code *bc = bc_load("examples/data.t800");
+    Byte_Code *bc = bc_load("examples/fact.t800");
     if (!bc)
         die(__LINE__, "Error parsing source");
 
+    printf("\n* Disassamble \n");
     bc_disassemble(bc);
 
     Cpu *cpu = cpu_create(bc, 32768);
     if (!cpu)
         die(__LINE__, "Error creating CPU");
 
+    printf("\n* Execution \n");
     cpu_run(cpu);
+    printf("\n* Register status\n\n");
     cpu_print_registers(cpu);
 
     cpu_free(cpu);

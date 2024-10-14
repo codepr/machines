@@ -1,7 +1,7 @@
 ; Print a string
 
 .data
-msg: db "Hello", 6
+msg: db "Hello", 5
 
 .main
     ; Initialize variables

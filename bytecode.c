@@ -113,7 +113,10 @@ int bc_push_instr(Byte_Code *bc, qword instr)
 
 static int bc_push_data(Byte_Code *bc, const char *data, size_t data_len)
 {
-    printf("data len %ld\n", data_len);
+    // Skip "
+    if (*data == '"')
+        data++;
+
     for (int i = 0; i < data_len; ++i) {
         if (bc->data_segment->length + 1 == bc->data_segment->capacity)
             bc->data_segment = segment_extend(CODE_SEGMENT, bc->data_segment);
@@ -625,8 +628,6 @@ static Labels scan_labels(FILE *fp)
             }
             labels.names[labels.length].offset = line_nr;
             strncpy(labels.names[labels.length].name, label, token_length);
-            printf("() %s -> %llu\n", labels.names[labels.length].name,
-                   labels.names[labels.length].offset);
 
             labels.length++;
         }
@@ -654,34 +655,35 @@ static void read_data(Byte_Code *bc, Labels *labels, char **line)
         strip_spaces(line);
     }
 
-    for (size_t j = 0; j < i;) {
+    for (size_t j = 0; j < i; j += 4) {
         // label expected first
-        // TODO (andrea): error here
-        if (is_label(tokens[j])) {
-            strncpy(labels->names[labels->length].name, tokens[j],
-                    strlen(tokens[j]));
-            j++;
-            continue;
-        }
+        if (!is_label(tokens[j]))
+            goto parse_error;
 
-        // Define bytes
-        // TODO (andrea): error for non-supported directives
-        // Skip for now
-        if (strncmp(tokens[j], "db", 2) == 0) {
-            // Length of the defined data
-            // currently only supports strings through DB directive
-            // String content
-            // Store pointer address
-            labels->names[labels->length++].offset = bc->data_addr;
+        // Only support define bytes directive for now
+        if (strncmp(tokens[j + 1], "db", 2) != 0)
+            goto parse_error;
 
-            if (is_number(tokens[j + 2])) {
-                data_len = atoi(tokens[j + 2]);
-                bc->data_addr += data_len;
-            }
-            bc_push_data(bc, tokens[j + 1], data_len);
-            j += 3;
-        }
+        if (!is_number(tokens[j + 3]))
+            goto parse_error;
+
+        // Length of the defined data
+        data_len = atoi(tokens[j + 3]);
+
+        // Copy the label name so it can be referenced later when building the
+        // instruction set
+        strncpy(labels->names[labels->length].name, tokens[j], data_len);
+
+        // String content, store pointer address
+        labels->names[labels->length++].offset = bc->data_addr;
+        bc->data_addr += data_len;
+        bc_push_data(bc, tokens[j + 2], data_len);
     }
+
+    return;
+
+parse_error:
+    fprintf(stderr, "parse error\n");
 }
 
 Byte_Code *bc_load(const char *path)

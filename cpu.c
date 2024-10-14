@@ -10,6 +10,13 @@ static void reset(Cpu *cpu, qword *code_segment, hword *data_segment,
     memset(cpu->stack, 0x00, STACK_SIZE * sizeof(*cpu->stack));
     cpu->bcode = code_segment;
 
+    cpu->pc    = 0;
+    cpu->sp    = cpu->stack;
+    cpu->run   = false;
+
+    if (!data_segment)
+        return;
+
     // Addressing
     for (size_t i = DATA_OFFSET; i < DATA_OFFSET * 2; ++i)
         cpu->memory[i] = i + DATA_OFFSET;
@@ -17,10 +24,6 @@ static void reset(Cpu *cpu, qword *code_segment, hword *data_segment,
     for (size_t i = DATA_OFFSET * 2, j = 0; j < data_len - DATA_OFFSET;
          ++i, ++j)
         cpu->memory[i] = data_segment[j];
-
-    cpu->pc  = 0;
-    cpu->sp  = cpu->stack;
-    cpu->run = false;
 }
 
 static qword fetch(Cpu *cpu) { return cpu->bcode[cpu->pc++]; }
@@ -251,7 +254,7 @@ Cpu *cpu_create(const Byte_Code *bc, size_t memory_size)
         return NULL;
     }
 
-    reset(cpu, bc_code(bc), bc_data(bc), bc->data_addr);
+    reset(cpu, bc_code(bc), bc_data(bc), bc_data_addr(bc));
 
     return cpu;
 }

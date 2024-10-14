@@ -163,6 +163,13 @@ hword *bc_data(const Byte_Code *const bc)
     return bc->data_segment->data;
 }
 
+qword bc_data_addr(const Byte_Code *const bc)
+{
+    if (!bc)
+        return 0;
+    return bc->data_addr;
+}
+
 Byte_Code *bc_create(void)
 {
     Byte_Code *bc = calloc(1, sizeof(*bc));

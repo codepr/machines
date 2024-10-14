@@ -86,6 +86,8 @@ qword *bc_code(const Byte_Code *const bc);
 
 hword *bc_data(const Byte_Code *const bc);
 
+qword bc_data_addr(const Byte_Code *const bc);
+
 qword bc_encode_instruction(qword opcode, qword dst, qword src);
 
 struct instruction bc_decode_instruction(qword einstr);

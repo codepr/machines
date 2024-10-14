@@ -5,7 +5,7 @@
 
 void test_bc_encode_decode(void)
 {
-    qword instruction = bc_encode_instruction(ADI, AX, 3);
+    qword instruction          = bc_encode_instruction(ADI, AX, 3);
     const struct instruction i = bc_decode_instruction(instruction);
 
     assert(i.op == ADI);
@@ -21,10 +21,10 @@ void test_add(Cpu *c)
                          bc_encode_instruction(ADD, BX, AX),
                          bc_encode_instruction(HLT, 0, 0)};
 
-    Byte_Code *bc = bc_from_raw(bytecode, 3);
+    Byte_Code *bc     = bc_from_raw(bytecode, 3);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     assert(c->r[BX] == 0);
 
     cpu_run(c);
@@ -42,10 +42,10 @@ void test_adi(Cpu *c)
                          bc_encode_instruction(ADI, AX, 4),
                          bc_encode_instruction(HLT, 0, 0)};
 
-    Byte_Code *bc = bc_from_raw(bytecode, 3);
+    Byte_Code *bc     = bc_from_raw(bytecode, 3);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     cpu_run(c);
 
     assert(c->r[AX] == 7);
@@ -64,7 +64,7 @@ void test_sub(Cpu *c)
     Byte_Code *bc = bc_from_raw(bytecode, 4);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     assert(c->r[BX] == 0);
 
     cpu_run(c);
@@ -82,10 +82,10 @@ void test_sbi(Cpu *c)
                          bc_encode_instruction(SBI, AX, 1),
                          bc_encode_instruction(HLT, 0, 0)};
 
-    Byte_Code *bc = bc_from_raw(bytecode, 3);
+    Byte_Code *bc     = bc_from_raw(bytecode, 3);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     cpu_run(c);
 
     assert(c->r[AX] == 2);
@@ -104,7 +104,7 @@ void test_mul(Cpu *c)
     Byte_Code *bc = bc_from_raw(bytecode, 4);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     assert(c->r[BX] == 0);
 
     cpu_run(c);
@@ -122,10 +122,10 @@ void test_mli(Cpu *c)
                          bc_encode_instruction(MLI, AX, 2),
                          bc_encode_instruction(HLT, 0, 0)};
 
-    Byte_Code *bc = bc_from_raw(bytecode, 4);
+    Byte_Code *bc     = bc_from_raw(bytecode, 4);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     cpu_run(c);
 
     assert(c->r[AX] == 6);
@@ -144,7 +144,7 @@ void test_div(Cpu *c)
     Byte_Code *bc = bc_from_raw(bytecode, 4);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     assert(c->r[BX] == 0);
 
     cpu_run(c);
@@ -162,10 +162,10 @@ void test_dvi(Cpu *c)
                          bc_encode_instruction(DVI, AX, 2),
                          bc_encode_instruction(HLT, 0, 0)};
 
-    Byte_Code *bc = bc_from_raw(bytecode, 4);
+    Byte_Code *bc     = bc_from_raw(bytecode, 4);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     cpu_run(c);
 
     assert(c->r[AX] == 4);
@@ -184,7 +184,7 @@ void test_mod(Cpu *c)
     Byte_Code *bc = bc_from_raw(bytecode, 4);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     assert(c->r[BX] == 0);
 
     cpu_run(c);
@@ -202,10 +202,10 @@ void test_mdi(Cpu *c)
                          bc_encode_instruction(MDI, AX, 2),
                          bc_encode_instruction(HLT, 0, 0)};
 
-    Byte_Code *bc = bc_from_raw(bytecode, 4);
+    Byte_Code *bc     = bc_from_raw(bytecode, 4);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     cpu_run(c);
 
     assert(c->r[AX] == 0);
@@ -221,10 +221,10 @@ void test_dvi_e(Cpu *c)
                          bc_encode_instruction(DVI, AX, 0),
                          bc_encode_instruction(HLT, 0, 0)};
 
-    Byte_Code *bc = bc_from_raw(bytecode, 4);
+    Byte_Code *bc     = bc_from_raw(bytecode, 4);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     Exec_Result r = cpu_run(c);
 
     assert(r == E_DIV_BY_ZERO);
@@ -240,10 +240,10 @@ void test_mov(Cpu *c)
                          bc_encode_instruction(MOV, BX, AX),
                          bc_encode_instruction(HLT, 0, 0)};
 
-    Byte_Code *bc = bc_from_raw(bytecode, 3);
+    Byte_Code *bc     = bc_from_raw(bytecode, 3);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
 
     assert(c->r[BX] == 0);
 
@@ -261,10 +261,10 @@ void test_ldi(Cpu *c)
     qword bytecode[2] = {bc_encode_instruction(LDI, AX, 3),
                          bc_encode_instruction(HLT, 0, 0)};
 
-    Byte_Code *bc = bc_from_raw(bytecode, 2);
+    Byte_Code *bc     = bc_from_raw(bytecode, 2);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     cpu_run(c);
 
     assert(c->r[AX] == 3);
@@ -279,10 +279,10 @@ void test_ldr(Cpu *c)
     qword bytecode[2] = {bc_encode_instruction(LDR, AX, 1),
                          bc_encode_instruction(HLT, 0, 0)};
 
-    Byte_Code *bc = bc_from_raw(bytecode, 2);
+    Byte_Code *bc     = bc_from_raw(bytecode, 2);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
 
     c->memory[1] = 7;
 
@@ -300,10 +300,10 @@ void test_sti(Cpu *c)
     qword bytecode[2] = {bc_encode_instruction(STI, 2, 1),
                          bc_encode_instruction(HLT, 0, 0)};
 
-    Byte_Code *bc = bc_from_raw(bytecode, 2);
+    Byte_Code *bc     = bc_from_raw(bytecode, 2);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     cpu_run(c);
 
     assert(c->memory[2] == 1);
@@ -318,10 +318,10 @@ void test_str(Cpu *c)
     qword bytecode[2] = {bc_encode_instruction(STR, 2, AX),
                          bc_encode_instruction(HLT, 0, 0)};
 
-    Byte_Code *bc = bc_from_raw(bytecode, 2);
+    Byte_Code *bc     = bc_from_raw(bytecode, 2);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
 
     c->r[AX] = 9;
 
@@ -339,10 +339,10 @@ void test_inc(Cpu *c)
     qword bytecode[2] = {bc_encode_instruction(INC, AX, 0),
                          bc_encode_instruction(HLT, 0, 0)};
 
-    Byte_Code *bc = bc_from_raw(bytecode, 2);
+    Byte_Code *bc     = bc_from_raw(bytecode, 2);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     cpu_run(c);
 
     assert(c->r[AX] == 1);
@@ -358,10 +358,10 @@ void test_dec(Cpu *c)
                          bc_encode_instruction(DEC, AX, 0),
                          bc_encode_instruction(HLT, 0, 0)};
 
-    Byte_Code *bc = bc_from_raw(bytecode, 3);
+    Byte_Code *bc     = bc_from_raw(bytecode, 3);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     cpu_run(c);
 
     assert(c->r[AX] == 0);
@@ -376,10 +376,10 @@ void test_psi(Cpu *c)
     qword bytecode[2] = {bc_encode_instruction(PSI, 0, 24),
                          bc_encode_instruction(HLT, 0, 0)};
 
-    Byte_Code *bc = bc_from_raw(bytecode, 2);
+    Byte_Code *bc     = bc_from_raw(bytecode, 2);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     cpu_run(c);
 
     assert(c->stack[0] == 24);
@@ -395,10 +395,10 @@ void test_psr(Cpu *c)
                          bc_encode_instruction(PSR, 0, AX),
                          bc_encode_instruction(HLT, 0, 0)};
 
-    Byte_Code *bc = bc_from_raw(bytecode, 3);
+    Byte_Code *bc     = bc_from_raw(bytecode, 3);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     cpu_run(c);
 
     assert(c->stack[0] == 32);
@@ -414,10 +414,10 @@ void test_psm(Cpu *c)
                          bc_encode_instruction(PSM, 0, 2),
                          bc_encode_instruction(HLT, 0, 0)};
 
-    Byte_Code *bc = bc_from_raw(bytecode, 3);
+    Byte_Code *bc     = bc_from_raw(bytecode, 3);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     cpu_run(c);
 
     assert(c->stack[0] == 32);
@@ -436,7 +436,7 @@ void test_pop(Cpu *c)
     Byte_Code *bc = bc_from_raw(bytecode, 4);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     cpu_run(c);
 
     assert(c->stack[0] == 32);
@@ -455,7 +455,7 @@ void test_pom(Cpu *c)
     Byte_Code *bc = bc_from_raw(bytecode, 4);
     assert(bc);
 
-    cpu_reset(c, bc_code(bc));
+    cpu_reset(c, bc_code(bc), bc_data(bc), bc->data_addr);
     cpu_run(c);
 
     assert(c->stack[0] == 32);
@@ -467,7 +467,7 @@ void test_pom(Cpu *c)
 
 int main(void)
 {
-    Cpu *cpu = cpu_create(NULL, 64);
+    Cpu *cpu = cpu_create(NULL, DATA_OFFSET * 2);
 
     test_bc_encode_decode();
     test_mov(cpu);

@@ -4,14 +4,20 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define DEST_MASK 0x000FF00000000000
-#define ADDR_MASK 0x00000FFFFFFFFFFF
+#define DEST_MASK   0x000FF00000000000
+#define ADDR_MASK   0x00000FFFFFFFFFFF
+#define DATA_OFFSET (2 << 12) // 8K
 
 typedef uint8_t hword;
 typedef int64_t qword;
-typedef struct code Code;
+
+typedef struct qword_segment Code_Segment;
+typedef struct hword_segment Data_Segment;
+
 typedef struct bytecode {
-    Code *code;
+    Code_Segment *code_segment;
+    Data_Segment *data_segment;
+    qword data_addr;
 } Byte_Code;
 
 typedef enum {
@@ -56,6 +62,7 @@ typedef enum {
     JGT,
     CALL,
     RET,
+    SYSCALL,
     HLT,
     NUM_INSTRUCTIONS
 } Instruction_Set;
@@ -69,13 +76,15 @@ struct instruction {
 
 Byte_Code *bc_create(void);
 
-Byte_Code *bc_from_raw(qword *bytecode, size_t length);
+Byte_Code *bc_from_raw(const qword *bytecode, size_t length);
 
 Byte_Code *bc_load(const char *path);
 
 void bc_disassemble(const Byte_Code *const bc);
 
 qword *bc_code(const Byte_Code *const bc);
+
+hword *bc_data(const Byte_Code *const bc);
 
 qword bc_encode_instruction(qword opcode, qword dst, qword src);
 

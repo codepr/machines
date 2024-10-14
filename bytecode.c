@@ -1,4 +1,5 @@
 #include "bytecode.h"
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdbool.h>
@@ -6,53 +7,121 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct code {
-    qword *code;
+#define SECTION_START '.'
+#define COMMENT_START ';'
+
+#define da_init(da, capacity)                                                  \
+    do {                                                                       \
+        assert((capacity) > 0);                                                \
+        (da)->length   = 0;                                                    \
+        (da)->capacity = (capacity);                                           \
+        (da)->data     = calloc((capacity), sizeof(*(da)->data));              \
+    } while (0)
+
+#define da_extend(da)                                                          \
+    do {                                                                       \
+        (da)->capacity *= 2;                                                   \
+        (da)->data =                                                           \
+            realloc((da)->data, (da)->capacity * sizeof(*(da)->data));         \
+        if (!(da)->data) {                                                     \
+            free((da));                                                        \
+            fprintf(stderr, "DA realloc failed");                              \
+            exit(EXIT_FAILURE);                                                \
+        }                                                                      \
+    } while (0)
+
+#define da_push(da, item)                                                      \
+    do {                                                                       \
+        assert((da));                                                          \
+        if ((da)->length + 1 == (da)->capacity)                                \
+            da_extend((da));                                                   \
+        (da)->data[(da)->length++] = (item);                                   \
+    } while (0)
+
+typedef enum { CODE_SEGMENT, DATA_SEGMENT } Segment_Type;
+
+// Generic quadword segment for storing the code
+struct qword_segment {
+    qword *data;
     size_t length;
     size_t capacity;
 };
 
-static struct code *code_extend(struct code *c)
+// Data segment using halfwords
+struct hword_segment {
+    hword *data;
+    size_t length;
+    size_t capacity;
+};
+
+static void *segment_extend(Segment_Type type, void *c)
 {
-    c->capacity *= 2;
-    c->code = realloc(c->code, c->capacity * sizeof(*c->code));
-    if (!c->code) {
-        free(c);
-        return NULL;
+    switch (type) {
+    case CODE_SEGMENT:
+        da_extend((struct qword_segment *)c);
+        return c;
+        break;
+    case DATA_SEGMENT:
+        da_extend((struct hword_segment *)c);
+        return c;
+        break;
     }
 
-    return c;
+    return NULL;
 }
 
-static struct code *code_create(void)
+static void *segment_create(Segment_Type type)
 {
-    struct code *c = calloc(1, sizeof(*c));
-    if (!c)
-        return NULL;
+    void *ptr       = NULL;
+    size_t capacity = 4;
+    if (type == CODE_SEGMENT) {
+        struct qword_segment *c = calloc(1, sizeof(*c));
+        if (!c)
+            return NULL;
 
-    c->code = calloc(4, sizeof(qword));
-    if (!c->code) {
-        free(c);
-        return NULL;
+        da_init(c, capacity);
+        ptr = c;
+    } else {
+        struct hword_segment *c = calloc(1, sizeof(*c));
+        if (!c)
+            return NULL;
+
+        da_init(c, capacity);
+        ptr = c;
     }
-
-    c->length = 0;
-    c->capacity = 4;
-    return c;
+    return ptr;
 }
 
-static void code_free(struct code *c)
+static void segment_free(Segment_Type type, void *c)
 {
-    free(c->code);
+    if (type == CODE_SEGMENT)
+        free(((struct qword_segment *)c)->data);
+    else
+        free(((struct hword_segment *)c)->data);
     free(c);
 }
 
 int bc_push_instr(Byte_Code *bc, qword instr)
 {
-    if (bc->code->length + 1 == bc->code->capacity)
-        bc->code = code_extend(bc->code);
+    if (bc->code_segment->length + 1 == bc->code_segment->capacity)
+        bc->code_segment = segment_extend(CODE_SEGMENT, bc->code_segment);
 
-    bc->code->code[bc->code->length++] = instr;
+    bc->code_segment->data[bc->code_segment->length++] = instr;
+
+    return 0;
+}
+
+static int bc_push_data(Byte_Code *bc, const char *data, size_t data_len)
+{
+    printf("data len %ld\n", data_len);
+    for (int i = 0; i < data_len; ++i) {
+        if (bc->data_segment->length + 1 == bc->data_segment->capacity)
+            bc->data_segment = segment_extend(CODE_SEGMENT, bc->data_segment);
+
+        bc->data_segment->data[bc->data_segment->length++] = data[i];
+    }
+
+    bc->data_segment->data[bc->data_segment->length++] = '\0';
 
     return 0;
 }
@@ -70,7 +139,7 @@ qword bc_encode_instruction(qword opcode, qword dst, qword src)
 // TODO: Dispatch the correct decoding based on opcode
 struct instruction bc_decode_instruction(qword e_instr)
 {
-    hword op = (uint64_t)e_instr >> 56;
+    hword op  = (uint64_t)e_instr >> 56;
     qword dst = (e_instr & DEST_MASK) >> 48;
     qword src = e_instr & ADDR_MASK;
 
@@ -81,7 +150,14 @@ qword *bc_code(const Byte_Code *const bc)
 {
     if (!bc)
         return NULL;
-    return bc->code->code;
+    return bc->code_segment->data;
+}
+
+hword *bc_data(const Byte_Code *const bc)
+{
+    if (!bc)
+        return NULL;
+    return bc->data_segment->data;
 }
 
 Byte_Code *bc_create(void)
@@ -90,28 +166,29 @@ Byte_Code *bc_create(void)
     if (!bc)
         return NULL;
 
-    bc->code = code_create();
-    if (!bc->code)
-        goto error;
+    bc->code_segment = segment_create(CODE_SEGMENT);
+    if (!bc->code_segment)
+        goto code_error;
+
+    bc->data_segment = segment_create(DATA_SEGMENT);
+    if (!bc->data_segment)
+        goto data_error;
+
+    bc->data_addr = DATA_OFFSET;
 
     return bc;
 
-error:
+data_error:
+    free(bc->code_segment);
+
+code_error:
     free(bc);
     return NULL;
 }
 
-Byte_Code *bc_from_raw(qword *bytecode, size_t length)
+Byte_Code *bc_from_raw(const qword *bytecode, size_t length)
 {
-    Byte_Code *bc = malloc(sizeof(*bc));
-    if (!bc)
-        return NULL;
-
-    bc->code = code_create();
-    if (!bc->code) {
-        free(bc);
-        return NULL;
-    }
+    Byte_Code *bc = bc_create();
 
     for (size_t i = 0; i < length; ++i)
         bc_push_instr(bc, bytecode[i]);
@@ -195,6 +272,8 @@ static Instruction_Set str_to_instruction(const char *str)
         return DEC;
     if (strncasecmp(str, "CALL", 4) == 0)
         return CALL;
+    if (strncasecmp(str, "SYSCALL", 7) == 0)
+        return SYSCALL;
     if (strncasecmp(str, "RET", 3) == 0)
         return RET;
     if (strncasecmp(str, "JMP", 3) == 0)
@@ -239,7 +318,7 @@ typedef struct {
     size_t length;
 } Labels;
 
-#define is_label(token) token[strlen(token) - 1] == ':'
+#define is_label(token) ((token)[strlen(token) - 1] == ':')
 
 static inline bool is_number(const char *str)
 {
@@ -268,7 +347,7 @@ static int64_t parse_hex(const char *hex)
     // To distinguish success/failure after call
     errno = 0;
 
-    val = strtol(str, &endptr, 16);
+    val   = strtol(str, &endptr, 16);
 
     // Check for various possible errors.
     if (errno != 0) {
@@ -284,7 +363,7 @@ static int64_t parse_hex(const char *hex)
     return val;
 }
 
-static int64_t parse_operand(const char *operand, Labels *labels)
+static int64_t parse_operand(const char *operand, const Labels *labels)
 {
     int64_t op_value = -1;
     if (strncasecmp(operand, "AX", 2) == 0)
@@ -300,7 +379,7 @@ static int64_t parse_operand(const char *operand, Labels *labels)
             // Immediate value
             char *endptr;
             // To distinguish success/failure after call
-            errno = 0;
+            errno    = 0;
 
             op_value = strtol(operand, &endptr, 10);
 
@@ -325,13 +404,13 @@ static int64_t parse_operand(const char *operand, Labels *labels)
         } else {
             // label
             bool found = false;
-            // Label case e.g. a JMP, check for the presence of the label
-            // in the labels array
+            // Label case e.g. a JMP, check for the presence of the
+            // label in the labels array
             for (size_t i = 0; i < labels->length && !found; ++i) {
                 if (strncmp(operand, labels->names[i].name, strlen(operand)) ==
                     0) {
                     op_value = labels->names[i].offset;
-                    found = true;
+                    found    = true;
                 }
             }
 
@@ -346,7 +425,8 @@ static int64_t parse_operand(const char *operand, Labels *labels)
 }
 
 static struct instruction parse_instruction(const char *op, const char *dst,
-                                            const char *src, Labels *labels)
+                                            const char *src,
+                                            const Labels *labels)
 {
     struct instruction instr;
 
@@ -418,6 +498,7 @@ static const Instruction_Def instr_defs[NUM_INSTRUCTIONS] = {
     {.name = "JGT", .dst = OP_ADDR, .src = OP_NONE},
     {.name = "CALL", .dst = OP_ADDR, .src = OP_NONE},
     {.name = "RET", .dst = OP_NONE, .src = OP_NONE},
+    {.name = "SYSCALL", .dst = OP_NONE, .src = OP_NONE},
     {.name = "HLT", .dst = OP_NONE, .src = OP_NONE}
 
 };
@@ -426,7 +507,7 @@ static const char *instruction_to_str(const struct instruction *instr,
                                       char *dst)
 {
     Instruction_Def idef = instr_defs[instr->op];
-    size_t nbytes = 0;
+    size_t nbytes        = 0;
 
     switch (idef.dst) {
     case OP_IMM: {
@@ -459,7 +540,7 @@ static const char *instruction_to_str(const struct instruction *instr,
         break;
     }
     case OP_ADDR: {
-        nbytes = snprintf(dst + nbytes, NAME_MAX_LEN, " [0x%lli]", instr->src);
+        nbytes = snprintf(dst + nbytes, NAME_MAX_LEN, " [0x%llx]", instr->src);
         break;
     }
     default:
@@ -472,23 +553,29 @@ static const char *instruction_to_str(const struct instruction *instr,
 void bc_disassemble(const Byte_Code *const bc)
 {
 
-    size_t i = 0;
+    size_t i    = 0;
 
     qword *code = bc_code(bc);
     char instr_str[NAME_MAX_LEN];
 
-    printf("\nOffset  Instructions    Words\n");
-    printf("---------------------------------------------------\n\n");
+    printf("\nOffset  Instructions    Hex words\n");
+    printf("-------------------------------------------------------\n\n");
 
-    while (i < bc->code->length) {
+    while (i < bc->code_segment->length) {
         memset(instr_str, 0x00, sizeof(instr_str));
         const struct instruction ins = bc_decode_instruction(code[i]);
-        printf("0x%04lX\t%-16s0x%04X 0x%04X 0x%04X 0x%04X", i,
-               instruction_to_str(&ins, instr_str),
-               (unsigned int)(code[i] >> 48 & 0xFFFF),
-               (unsigned int)(code[i] >> 32 & 0xFFFF),
-               (unsigned int)(code[i] >> 16 & 0xFFFF),
-               (unsigned int)(code[i] >> 0 & 0xFFFF));
+        printf("0x%04lX\t%-16s%02X %02X %02X %02X %02X %02X %02X %02X  "
+               "0x%04lX",
+               i, instruction_to_str(&ins, instr_str),
+               (unsigned short)(code[i] >> 56 & 0xFF),
+               (unsigned short)(code[i] >> 48 & 0xFF),
+               (unsigned short)(code[i] >> 40 & 0xFF),
+               (unsigned short)(code[i] >> 32 & 0xFF),
+               (unsigned short)(code[i] >> 24 & 0xFF),
+               (unsigned short)(code[i] >> 16 & 0xFF),
+               (unsigned short)(code[i] >> 8 & 0xFF),
+               (unsigned short)(code[i] >> 0 & 0xFF),
+               (unsigned long)i * sizeof(qword));
 
         printf("\n");
         i++;
@@ -506,7 +593,8 @@ static Labels scan_labels(FILE *fp)
 
     char line[0xFFF], label[NAME_MAX_LEN];
     char *line_ptr;
-    size_t line_nr = 0;
+    size_t line_nr         = 0;
+    bool skip_data_section = false;
 
     while (fgets(line, 0xFFF, fp)) {
         line_ptr = line;
@@ -514,6 +602,14 @@ static Labels scan_labels(FILE *fp)
         strip_spaces(&line_ptr);
 
         memset(label, 0x00, NAME_MAX_LEN);
+
+        if (strncmp(line_ptr, ".data", 5) == 0)
+            skip_data_section = true;
+        else if (*line_ptr == '.')
+            skip_data_section = false;
+
+        if (skip_data_section)
+            continue;
 
         if (*line_ptr == '\0' || *line_ptr == ';' || *line_ptr == '.')
             continue;
@@ -529,6 +625,9 @@ static Labels scan_labels(FILE *fp)
             }
             labels.names[labels.length].offset = line_nr;
             strncpy(labels.names[labels.length].name, label, token_length);
+            printf("() %s -> %llu\n", labels.names[labels.length].name,
+                   labels.names[labels.length].offset);
+
             labels.length++;
         }
 
@@ -539,6 +638,51 @@ static Labels scan_labels(FILE *fp)
 }
 
 enum { TOKEN_OP, TOKEN_DST, TOKEN_SRC, NUM_TOKENS };
+
+static void read_data(Byte_Code *bc, Labels *labels, char **line)
+{
+    if (!*line)
+        return;
+
+    char tokens[32][NAME_MAX_LEN] = {0};
+    memset(tokens, 0x00, NUM_TOKENS * sizeof(tokens[0]));
+    size_t i = 0, data_len = 0;
+    // Parsing a well-formed data segment line:
+    // e.g. message: db "Hello", 5
+    while (**line != '\0' && **line != ';') {
+        read_token(line, tokens[i++]);
+        strip_spaces(line);
+    }
+
+    for (size_t j = 0; j < i;) {
+        // label expected first
+        // TODO (andrea): error here
+        if (is_label(tokens[j])) {
+            strncpy(labels->names[labels->length].name, tokens[j],
+                    strlen(tokens[j]));
+            j++;
+            continue;
+        }
+
+        // Define bytes
+        // TODO (andrea): error for non-supported directives
+        // Skip for now
+        if (strncmp(tokens[j], "db", 2) == 0) {
+            // Length of the defined data
+            // currently only supports strings through DB directive
+            // String content
+            // Store pointer address
+            labels->names[labels->length++].offset = bc->data_addr;
+
+            if (is_number(tokens[j + 2])) {
+                data_len = atoi(tokens[j + 2]);
+                bc->data_addr += data_len;
+            }
+            bc_push_data(bc, tokens[j + 1], data_len);
+            j += 3;
+        }
+    }
+}
 
 Byte_Code *bc_load(const char *path)
 {
@@ -556,24 +700,40 @@ Byte_Code *bc_load(const char *path)
     char line[0xFFF];
     char tokens[NUM_TOKENS][NAME_MAX_LEN];
     char *line_ptr;
-    int ntokens = 0;
+    int ntokens   = 0;
 
     Labels labels = scan_labels(fp);
 
     rewind(fp);
 
     while (fgets(line, 0xFFF, fp)) {
-        ntokens = 0;
+        ntokens  = 0;
         line_ptr = line;
         strip_spaces(&line_ptr);
         memset(tokens, 0x00, NUM_TOKENS * sizeof(tokens[0]));
-        while (*line_ptr != '\0') {
 
-            if (*line_ptr == '.' || *line_ptr == ';') {
+        while (*line_ptr != '\0') {
+            switch (*line_ptr) {
+            case SECTION_START:
+                if (strncasecmp(line_ptr, ".main", 5) == 0) {
+                    *line_ptr = '\0';
+                } else if (strncasecmp(line_ptr, ".data", 5) == 0) {
+                    if (!fgets(line, 0xFFF, fp)) {
+                        *line_ptr = '\0';
+                    } else {
+                        line_ptr = line;
+                        read_data(bc, &labels, &line_ptr);
+                        strip_spaces(&line_ptr);
+                    }
+                }
+                break;
+            case COMMENT_START:
                 *line_ptr = '\0';
-            } else {
+                break;
+            default:
                 read_token(&line_ptr, tokens[ntokens++]);
                 strip_spaces(&line_ptr);
+                break;
             }
         }
 
@@ -584,14 +744,12 @@ Byte_Code *bc_load(const char *path)
             const struct instruction i =
                 parse_instruction(tokens[TOKEN_OP], NULL, NULL, &labels);
             bc_push_instr(bc, bc_encode_instruction(i.op, i.dst, i.src));
-
             break;
         }
         case 2: {
             const struct instruction i = parse_instruction(
                 tokens[TOKEN_OP], tokens[TOKEN_DST], NULL, &labels);
             bc_push_instr(bc, bc_encode_instruction(i.op, i.dst, i.src));
-
             break;
         }
         case 3: {
@@ -617,6 +775,7 @@ exit:
 
 void bc_free(Byte_Code *bc)
 {
-    code_free(bc->code);
+    segment_free(CODE_SEGMENT, bc->code_segment);
+    segment_free(DATA_SEGMENT, bc->data_segment);
     free(bc);
 }

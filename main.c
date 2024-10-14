@@ -16,7 +16,7 @@ static void die(int line_nr, const char *fmt, ...)
 
 int main(void)
 {
-    Byte_Code *bc = bc_load("examples/fib.t800");
+    Byte_Code *bc = bc_load("examples/data.t800");
     if (!bc)
         die(__LINE__, "Error parsing source");
 

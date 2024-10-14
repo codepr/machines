@@ -1,6 +1,9 @@
 ; Simple Factorial implementation
 ; Factorial(10)
 
+.data
+msg: db "Hello", 10
+
 .main
     ; Initialize variables
     LDI AX, 10   ; Initialize starting value 10

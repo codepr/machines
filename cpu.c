@@ -1,14 +1,25 @@
 #include "cpu.h"
+#include "syscall.h"
 #include <stdio.h>
 #include <string.h>
 
-static void reset(Cpu *cpu, qword *code)
+static void reset(Cpu *cpu, qword *code_segment, hword *data_segment,
+                  size_t data_len)
 {
     memset(cpu->r, 0x00, NUM_REGISTERS * sizeof(*cpu->r));
     memset(cpu->stack, 0x00, STACK_SIZE * sizeof(*cpu->stack));
-    cpu->bcode = code;
-    cpu->pc = 0;
-    cpu->sp = cpu->stack;
+    cpu->bcode = code_segment;
+
+    // Addressing
+    for (size_t i = DATA_OFFSET; i < DATA_OFFSET * 2; ++i)
+        cpu->memory[i] = i + DATA_OFFSET;
+    // Storing
+    for (size_t i = DATA_OFFSET * 2, j = 0; j < data_len - DATA_OFFSET;
+         ++i, ++j)
+        cpu->memory[i] = data_segment[j];
+
+    cpu->pc  = 0;
+    cpu->sp  = cpu->stack;
     cpu->run = false;
 }
 
@@ -28,7 +39,7 @@ static void clear_flags(Cpu *cpu)
 
 static void set_flags(Cpu *cpu, qword a, qword b)
 {
-    qword result = a - b;
+    qword result  = a - b;
     cpu->flags[0] = (result == 0);
     cpu->flags[1] = (result < 0);
     cpu->flags[2] = (result > 0);
@@ -206,11 +217,16 @@ static Exec_Result execute(Cpu *cpu, struct instruction *instr)
     }
     case CALL: {
         *cpu->sp++ = (cpu->pc - 1);
-        cpu->pc = instr->dst;
+        cpu->pc    = instr->dst;
         break;
     }
     case RET: {
         cpu->pc = *--cpu->sp;
+        break;
+    }
+    case SYSCALL: {
+        syscall_write(cpu->r[BX], &cpu->memory[cpu->r[CX]],
+                      cpu->r[DX] * sizeof(qword));
         break;
     }
     case HLT:
@@ -229,13 +245,13 @@ Cpu *cpu_create(const Byte_Code *bc, size_t memory_size)
     if (!cpu)
         return NULL;
 
-    cpu->memory = malloc(memory_size);
+    cpu->memory = malloc(memory_size * sizeof(qword));
     if (!cpu->memory) {
         free(cpu);
         return NULL;
     }
 
-    reset(cpu, bc_code(bc));
+    reset(cpu, bc_code(bc), bc_data(bc), bc->data_addr);
 
     return cpu;
 }
@@ -246,16 +262,19 @@ void cpu_free(Cpu *cpu)
     free(cpu);
 }
 
-void cpu_reset(Cpu *cpu, qword *code) { reset(cpu, code); }
+void cpu_reset(Cpu *cpu, qword *code, hword *data, size_t data_len)
+{
+    reset(cpu, code, data, data_len);
+}
 
 Exec_Result cpu_run(Cpu *cpu)
 {
     Exec_Result r = SUCCESS;
-    cpu->run = true;
+    cpu->run      = true;
     while (cpu->run && r == SUCCESS) {
-        qword encoded_instr = fetch(cpu);
+        qword encoded_instr      = fetch(cpu);
         struct instruction instr = decode(encoded_instr);
-        r = execute(cpu, &instr);
+        r                        = execute(cpu, &instr);
     }
 
     return r;

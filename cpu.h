@@ -26,7 +26,7 @@ Cpu *cpu_create(const Byte_Code *bc, size_t memory_size);
 
 void cpu_free(Cpu *cpu);
 
-void cpu_reset(Cpu *cpu, qword *code);
+void cpu_reset(Cpu *cpu, qword *code, hword *data, size_t len);
 
 Exec_Result cpu_run(Cpu *cpu);
 

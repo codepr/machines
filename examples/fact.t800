@@ -22,7 +22,7 @@ ldi dx, 14
 syscall
 ldi bx, 0
 ldr cx, buf
-ldi dx, 1024
+ldi dx, 0xff
 syscall
 ldi bx, 1
 ldr cx, buf

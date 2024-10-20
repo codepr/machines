@@ -17,6 +17,7 @@ static void reset(Cpu *cpu, qword *code_segment, hword *data_segment,
     if (!data_segment)
         return;
 
+    memset(cpu->memory, 0x00, 32768);
     // Addressing
     for (size_t i = DATA_OFFSET; i < DATA_OFFSET * 2; ++i)
         cpu->memory[i] = i + DATA_OFFSET;
@@ -28,7 +29,7 @@ static void reset(Cpu *cpu, qword *code_segment, hword *data_segment,
 
 static qword fetch(Cpu *cpu) { return cpu->bcode[cpu->pc++]; }
 
-static struct instruction decode(qword einstr)
+static struct instruction_line decode(qword einstr)
 {
     return bc_decode_instruction(einstr);
 }
@@ -48,7 +49,7 @@ static void set_flags(Cpu *cpu, qword a, qword b)
     cpu->flags[2] = (result > 0);
 }
 
-static Exec_Result execute(Cpu *cpu, struct instruction *instr)
+static Exec_Result execute(Cpu *cpu, struct instruction_line *instr)
 {
     switch (instr->op) {
     case NOP: {
@@ -285,9 +286,9 @@ Exec_Result cpu_run(Cpu *cpu)
     Exec_Result r = SUCCESS;
     cpu->run      = true;
     while (cpu->run && r == SUCCESS) {
-        qword encoded_instr      = fetch(cpu);
-        struct instruction instr = decode(encoded_instr);
-        r                        = execute(cpu, &instr);
+        qword encoded_instr           = fetch(cpu);
+        struct instruction_line instr = decode(encoded_instr);
+        r                             = execute(cpu, &instr);
     }
 
     return r;

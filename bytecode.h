@@ -1,18 +1,23 @@
 #ifndef BYTECODE_H
 #define BYTECODE_H
 
+#include "data.h"
 #include <stddef.h>
 #include <stdint.h>
 
-#define DEST_MASK   0x000FF00000000000
-#define ADDR_MASK   0x00000FFFFFFFFFFF
-#define DATA_OFFSET (2 << 12) // 8K
+// Generic quadword segment for storing the code
+typedef struct qword_segment {
+    qword *data;
+    size_t length;
+    size_t capacity;
+} Code_Segment;
 
-typedef uint8_t hword;
-typedef int64_t qword;
-
-typedef struct qword_segment Code_Segment;
-typedef struct hword_segment Data_Segment;
+// Data segment using halfwords
+typedef struct hword_segment {
+    hword *data;
+    size_t length;
+    size_t capacity;
+} Data_Segment;
 
 typedef struct bytecode {
     Code_Segment *code_segment;
@@ -69,14 +74,11 @@ typedef enum {
 
 typedef enum { AX, BX, CX, DX, NUM_REGISTERS } Register;
 
-struct instruction {
-    hword op;
-    qword src, dst;
-};
-
 Byte_Code *bc_create(void);
 
 Byte_Code *bc_from_raw(const qword *bytecode, size_t length);
+
+Byte_Code *bc_from_source(const char *source);
 
 Byte_Code *bc_load(const char *path);
 
@@ -88,9 +90,9 @@ hword *bc_data(const Byte_Code *const bc);
 
 qword bc_data_addr(const Byte_Code *const bc);
 
-qword bc_encode_instruction(qword opcode, qword dst, qword src);
+qword bc_encode_instruction(struct instruction_line *i);
 
-struct instruction bc_decode_instruction(qword einstr);
+struct instruction_line bc_decode_instruction(qword einstr);
 
 void bc_free(Byte_Code *bc);
 

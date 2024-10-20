@@ -11,6 +11,8 @@ struct lexer {
     size_t size;
 };
 
+typedef enum { DATA_SECTION, MAIN_SECTION } Section;
+
 typedef enum {
     TOKEN_LABEL,
     TOKEN_INSTR,
@@ -19,6 +21,7 @@ typedef enum {
     TOKEN_CONSTANT,
     TOKEN_ADDRESS,
     TOKEN_SECTION,
+    TOKEN_DIRECTIVE,
     TOKEN_COMMA,
     TOKEN_NEWLINE,
     TOKEN_COMMENT,
@@ -28,6 +31,7 @@ typedef enum {
 
 struct token {
     Token_Type type;
+    Section section;
     char value[TOKEN_NAME_SIZE];
 };
 
@@ -41,6 +45,7 @@ void lexer_token_list_init(struct token_list *tl, size_t capacity);
 
 void lexer_init(struct lexer *l, char *buffer, size_t size);
 int lexer_tokenize(struct lexer *l, struct token_list *tokens);
+const char *lexer_show_token(const struct token *t);
 void lexer_print_tokens(const struct token_list *tl);
 
 #endif

@@ -20,3 +20,5 @@ ssize_t syscall_read(qword fd, qword *addr, size_t len)
 
     return read(fd, (char *)addr, len);
 }
+
+int64_t syscall_atoi(qword *addr) { return atoi((char *)addr); }

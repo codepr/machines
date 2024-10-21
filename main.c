@@ -63,7 +63,7 @@ int main(void)
     // printf("\n* disassamble \n");
     // bc_disassemble(bc);
 
-    Byte_Code *bcr = bc_load("examples/fact.t800");
+    Byte_Code *bcr = bc_load("examples/sum.t800");
     if (!bcr)
         die(__LINE__, "error parsing source");
 

@@ -18,7 +18,7 @@ static const char *instructions[] = {
     "jlt", "jge", "jgt", "call", "ret", "syscall", "hlt", NULL};
 
 static const char *registers[]  = {"ax", "bx", "cx", "dx", NULL};
-static const char *directives[] = {"db", NULL};
+static const char *directives[] = {"db", "dw", NULL};
 
 static const char *tokens[]     = {"TOKEN_LABEL",    "TOKEN_INSTR",
                                    "TOKEN_REGISTER", "TOKEN_STRING",

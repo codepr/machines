@@ -240,6 +240,9 @@ static Exec_Result execute(Cpu *cpu, struct instruction_line *instr)
             syscall_write(cpu->r[BX], &cpu->memory[cpu->r[CX]],
                           cpu->r[DX] * sizeof(qword));
             break;
+        case 64:
+            cpu->r[AX] = syscall_atoi(&cpu->memory[cpu->r[CX]]);
+            break;
         }
         break;
     }

@@ -1,0 +1,24 @@
+; Sum of two numbers
+
+.data
+num1: dw 1
+num2: dw 1
+
+.main
+; Initialize variables
+ldi bx, 0           ; read call
+ldr cx, num1        ; Initialize to address of the num1 reserved qword space
+ldi dx, 1
+syscall
+ldi bx, 64         ; atoi call
+syscall            ; now ax contains the integer value of num1
+psr ax            ; save ax content
+ldi bx, 0           ; read call
+ldr cx, num2        ; Initialize to address of the num2 reserved qword space
+ldi dx, 1
+syscall
+ldi bx, 64         ; atoi call
+syscall            ; now ax contains the integer value of num1
+pop dx             ; pop the stack (ax) into dx
+add ax, dx         ; add registers
+hlt

@@ -56,14 +56,21 @@ int main(void)
     // Byte_Code *bc = bc_from_source(source);
     // bc_disassemble(bc);
 
-    Byte_Code *bc = bc_load("examples/fact.t800");
-    if (!bc)
-        die(__LINE__, "Error parsing source");
+    // Byte_Code *bc = bc_slurp("examples/fact.t800");
+    // if (!bc)
+    //     die(__LINE__, "error parsing source");
+    //
+    // printf("\n* disassamble \n");
+    // bc_disassemble(bc);
 
-    printf("\n* Disassamble \n");
-    bc_disassemble(bc);
+    Byte_Code *bcr = bc_load("examples/fact.t800");
+    if (!bcr)
+        die(__LINE__, "error parsing source");
 
-    Cpu *cpu = cpu_create(bc, 32768);
+    printf("\n* disassamble \n");
+    bc_disassemble(bcr);
+
+    Cpu *cpu = cpu_create(bcr, 32768);
     if (!cpu)
         die(__LINE__, "Error creating CPU");
 
@@ -73,8 +80,8 @@ int main(void)
     cpu_print_registers(cpu);
 
     cpu_free(cpu);
-    bc_free(bc);
-    // bc_free(abc);
+    // bc_free(bc);
+    bc_free(bcr);
 
     return 0;
 }

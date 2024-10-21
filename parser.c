@@ -67,17 +67,6 @@ static int parser_reserve_space(Byte_Code *bc, size_t bytes)
     return bytes;
 }
 
-void parser_init(struct parser *p, const struct token_list *tokens)
-{
-    p->tokens                 = tokens;
-    p->current                = &tokens->items[0];
-    // Basically the line number, this will be updated each time a NEWLINE token
-    // is consumed
-    p->current_address        = 0;
-    p->label_list.length      = 0;
-    p->label_list.base_offset = DATA_OFFSET;
-}
-
 static Instruction_Set parse_instruction(const char *str)
 {
     if (strncasecmp(str, "NOP", 3) == 0)
@@ -183,18 +172,30 @@ static int64_t parse_register(const char *value)
     return -1;
 }
 
-static inline void parser_panic(struct parser *p, size_t line)
+static inline void parser_panic(struct parser *p)
 {
     fprintf(stderr, "unexpected token %s after %s (%s) at line %lu\n",
             lexer_show_token(parser_peek(p)),
             lexer_show_token(parser_current(p)), parser_current(p)->value,
-            line);
+            p->lines);
     exit(EXIT_FAILURE);
+}
+
+void parser_init(struct parser *p, const struct token_list *tokens)
+{
+    p->lines                  = 0;
+    p->tokens                 = tokens;
+    p->current                = &tokens->data[0];
+    // Basically the line number, this will be updated each time a NEWLINE token
+    // is consumed
+    p->current_address        = 0;
+    p->label_list.length      = 0;
+    p->label_list.base_offset = DATA_OFFSET;
 }
 
 int parser_parse_source(struct parser *p, Byte_Code *bc)
 {
-    size_t lines                             = 1;
+    p->lines                                 = 1;
     struct instruction_line last_instruction = {0, -1, -1};
     while (parser_peek(p)->type != TOKEN_EOF) {
         struct token *current = parser_current(p);
@@ -207,13 +208,13 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
                       parser_expect(p, TOKEN_CONSTANT) ||
                       parser_expect(p, TOKEN_DIRECTIVE) ||
                       parser_expect(p, TOKEN_STRING))) {
-                    parser_panic(p, lines);
+                    parser_panic(p);
                 }
             }
             break;
         case TOKEN_INSTR:
             if (current->section == DATA_SECTION) {
-                parser_panic(p, lines);
+                parser_panic(p);
             }
             Instruction_Set op = parse_instruction(current->value);
             if (op < 0) {
@@ -234,12 +235,12 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
                   parser_expect(p, TOKEN_ADDRESS) ||
                   parser_expect(p, TOKEN_COMMENT) ||
                   parser_expect(p, TOKEN_NEWLINE))) {
-                parser_panic(p, lines);
+                parser_panic(p);
             }
             break;
         case TOKEN_REGISTER:
             if (current->section == DATA_SECTION) {
-                parser_panic(p, lines);
+                parser_panic(p);
             }
             qword reg = parse_register(current->value);
             if (reg < 0) {
@@ -260,13 +261,13 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
                       parser_expect(p, TOKEN_COMMA) ||
                       parser_expect(p, TOKEN_COMMENT) ||
                       parser_expect(p, TOKEN_NEWLINE))) {
-                    parser_panic(p, lines);
+                    parser_panic(p);
                 }
             } else {
                 last_instruction.src = reg;
                 if (!(parser_expect(p, TOKEN_COMMENT) ||
                       parser_expect(p, TOKEN_NEWLINE))) {
-                    parser_panic(p, lines);
+                    parser_panic(p);
                 }
                 da_push(bc->code_segment,
                         bc_encode_instruction(&last_instruction));
@@ -276,7 +277,7 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
             break;
         case TOKEN_STRING:
             if (current->section != DATA_SECTION) {
-                parser_panic(p, lines);
+                parser_panic(p);
             }
             // COMMA
             parser_advance(p);
@@ -285,14 +286,14 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
             parser_advance(p);
             struct token *next = parser_current(p);
             if (next->type != TOKEN_CONSTANT)
-                parser_panic(p, lines);
+                parser_panic(p);
             size_t len = atoll(next->value);
             // TODO check for nul
             p->label_list.base_offset +=
                 parser_append_string(bc, current->value, len);
             if (!(parser_expect(p, TOKEN_COMMENT) ||
                   parser_expect(p, TOKEN_NEWLINE))) {
-                parser_panic(p, lines);
+                parser_panic(p);
             }
             break;
         case TOKEN_CONSTANT:
@@ -309,12 +310,12 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
                 if (!(parser_expect(p, TOKEN_NEWLINE) ||
                       parser_expect(p, TOKEN_COMMA) ||
                       parser_expect(p, TOKEN_COMMENT))) {
-                    parser_panic(p, lines);
+                    parser_panic(p);
                 }
             } else {
                 if (!(parser_expect(p, TOKEN_COMMENT) ||
                       parser_expect(p, TOKEN_NEWLINE))) {
-                    parser_panic(p, lines);
+                    parser_panic(p);
                 }
                 qword constant = 0;
                 if (strncmp(current->value, "0x", 2) == 0) {
@@ -334,7 +335,7 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
         case TOKEN_ADDRESS:
             if (!(parser_expect(p, TOKEN_COMMENT) ||
                   parser_expect(p, TOKEN_NEWLINE))) {
-                parser_panic(p, lines);
+                parser_panic(p);
             }
             // Label case e.g. a JMP, check for the presence of the
             // label in the labels array
@@ -361,16 +362,17 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
         case TOKEN_COMMA:
             break;
         case TOKEN_NEWLINE:
-            lines++;
+            p->lines++;
             break;
         case TOKEN_COMMENT:
             if (!(parser_expect(p, TOKEN_NEWLINE) ||
                   parser_expect(p, TOKEN_EOF))) {
-                parser_panic(p, lines);
+                parser_panic(p);
             }
             break;
         case TOKEN_UNKNOWN:
-            fprintf(stderr, "unexpected token %s\n", parser_current(p)->value);
+            fprintf(stderr, "unexpected token %s at line %ld\n",
+                    parser_current(p)->value, p->lines);
             exit(EXIT_FAILURE);
             break;
         case TOKEN_EOF:

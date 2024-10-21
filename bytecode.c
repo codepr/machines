@@ -280,7 +280,7 @@ Byte_Code *bc_from_source(const char *source)
     return bc;
 }
 
-Byte_Code *bc_load(const char *path)
+Byte_Code *bc_slurp(const char *path)
 {
     if (!path)
         return NULL;
@@ -347,6 +347,32 @@ exit:
     free(buffer);
     fclose(fp);
     return NULL;
+}
+
+Byte_Code *bc_load(const char *path)
+{
+    if (!path)
+        return NULL;
+
+    FILE *fp = fopen(path, "rb");
+    if (!fp)
+        return NULL;
+
+    Byte_Code *bc = bc_create();
+    if (!bc)
+        return NULL;
+
+    struct lexer lex;
+    struct token_list tl;
+    lexer_token_list_init(&tl, 4);
+
+    lexer_tokenize_stream(fp, &lex, &tl);
+
+    struct parser p;
+    parser_init(&p, &tl);
+    parser_parse_source(&p, bc);
+
+    return bc;
 }
 
 void bc_free(Byte_Code *bc)

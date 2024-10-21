@@ -4,28 +4,19 @@
 
 void syscall_exit(void) { exit(EXIT_SUCCESS); }
 
-size_t syscall_write(qword fd, qword *addr, size_t len)
+ssize_t syscall_write(qword fd, qword *addr, size_t len)
 {
     if (fd < 0)
         return -1;
 
-    size_t n = 0;
-    if (fd == 1) {
-        n = write(fd, (const char *)addr, len);
-    }
-    return n;
+    return write(fd, (const char *)addr, len);
 }
 
-size_t syscall_read(qword fd, qword *addr, size_t len)
+ssize_t syscall_read(qword fd, qword *addr, size_t len)
 {
 
     if (fd < 0)
         return -1;
 
-    size_t n = 0;
-    if (fd == 0) {
-        n = read(fd, (char *)addr, len);
-    }
-
-    return n;
+    return read(fd, (char *)addr, len);
 }

@@ -3,9 +3,13 @@
 #include "data.h"
 #include "lexer.h"
 #include <assert.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 
+// Boolean comparison with the following token in the list, used to add some
+// simple constraints on the semantic of the source code by specifying what
+// tokens can be allowed after each one parsed
 static inline int parser_expect(const struct parser *p, Token_Type type)
 {
     return (p->current + 1)->type == type;
@@ -67,6 +71,9 @@ static int parser_reserve_space(Byte_Code *bc, size_t bytes)
     return bytes;
 }
 
+// An hashmap would be helpful here, the list of instructions is still pretty
+// small so not a big deal to sequentially scan and compare each string
+// instruction
 static Instruction_Set parse_instruction(const char *str)
 {
     if (strncasecmp(str, "NOP", 3) == 0)
@@ -172,13 +179,36 @@ static int64_t parse_register(const char *value)
     return -1;
 }
 
-static inline void parser_panic(struct parser *p)
+static inline int parser_panic(struct parser *p)
 {
     fprintf(stderr, "unexpected token %s after %s (%s) at line %lu\n",
             lexer_show_token(parser_peek(p)),
             lexer_show_token(parser_current(p)), parser_current(p)->value,
             p->lines);
-    exit(EXIT_FAILURE);
+    return -1;
+}
+
+static int64_t parser_parse_hex(const char *value)
+{
+
+    char *endptr;
+    // To distinguish success/failure after call
+    errno       = 0;
+
+    int64_t val = strtol(value, &endptr, 16);
+
+    // Check for various possible errors.
+    if (errno != 0) {
+        perror("strtol");
+        exit(EXIT_FAILURE);
+    }
+
+    if (endptr == value) {
+        fprintf(stderr, "No digits were found\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return val;
 }
 
 void parser_init(struct parser *p, const struct token_list *tokens)
@@ -197,6 +227,7 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
 {
     p->lines                                 = 1;
     struct instruction_line last_instruction = {0, -1, -1};
+    // TOOD consider a dispatch table, the switch is still contianed tho
     while (parser_peek(p)->type != TOKEN_EOF) {
         struct token *current = parser_current(p);
 
@@ -208,18 +239,18 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
                       parser_expect(p, TOKEN_CONSTANT) ||
                       parser_expect(p, TOKEN_DIRECTIVE) ||
                       parser_expect(p, TOKEN_STRING))) {
-                    parser_panic(p);
+                    goto panic;
                 }
             }
             break;
         case TOKEN_INSTR:
             if (current->section == DATA_SECTION) {
-                parser_panic(p);
+                goto panic;
             }
             Instruction_Set op = parse_instruction(current->value);
             if (op < 0) {
                 fprintf(stderr, "unrcognized instruction %s\n", current->value);
-                exit(EXIT_FAILURE);
+                return -1;
             }
             last_instruction.op = op;
             if (parser_expect(p, TOKEN_COMMENT) ||
@@ -235,17 +266,17 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
                   parser_expect(p, TOKEN_ADDRESS) ||
                   parser_expect(p, TOKEN_COMMENT) ||
                   parser_expect(p, TOKEN_NEWLINE))) {
-                parser_panic(p);
+                goto panic;
             }
             break;
         case TOKEN_REGISTER:
             if (current->section == DATA_SECTION) {
-                parser_panic(p);
+                goto panic;
             }
             qword reg = parse_register(current->value);
             if (reg < 0) {
                 fprintf(stderr, "unrcognized instruction %s\n", current->value);
-                exit(EXIT_FAILURE);
+                return -1;
             }
             if (last_instruction.dst == -1) {
                 last_instruction.dst = reg;
@@ -261,13 +292,13 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
                       parser_expect(p, TOKEN_COMMA) ||
                       parser_expect(p, TOKEN_COMMENT) ||
                       parser_expect(p, TOKEN_NEWLINE))) {
-                    parser_panic(p);
+                    goto panic;
                 }
             } else {
                 last_instruction.src = reg;
                 if (!(parser_expect(p, TOKEN_COMMENT) ||
                       parser_expect(p, TOKEN_NEWLINE))) {
-                    parser_panic(p);
+                    goto panic;
                 }
                 da_push(bc->code_segment,
                         bc_encode_instruction(&last_instruction));
@@ -277,7 +308,7 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
             break;
         case TOKEN_STRING:
             if (current->section != DATA_SECTION) {
-                parser_panic(p);
+                goto panic;
             }
             // COMMA
             parser_advance(p);
@@ -286,46 +317,36 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
             parser_advance(p);
             struct token *next = parser_current(p);
             if (next->type != TOKEN_CONSTANT)
-                parser_panic(p);
+                goto panic;
             size_t len = atoll(next->value);
             // TODO check for nul
             p->label_list.base_offset +=
                 parser_append_string(bc, current->value, len);
             if (!(parser_expect(p, TOKEN_COMMENT) ||
                   parser_expect(p, TOKEN_NEWLINE))) {
-                parser_panic(p);
+                goto panic;
             }
             break;
         case TOKEN_CONSTANT:
             if (current->section == DATA_SECTION) {
-                qword constant = 0;
-                if (strncmp(current->value, "0x", 2) == 0) {
-                    char *endptr;
-                    // TODO handle errors
-                    constant = strtol(current->value, &endptr, 16);
-                } else {
-                    constant = atoll(current->value);
-                }
+                qword constant = (strncmp(current->value, "0x", 2) == 0)
+                                     ? parser_parse_hex(current->value)
+                                     : atoll(current->value);
                 p->label_list.base_offset += parser_reserve_space(bc, constant);
                 if (!(parser_expect(p, TOKEN_NEWLINE) ||
                       parser_expect(p, TOKEN_COMMA) ||
                       parser_expect(p, TOKEN_COMMENT))) {
-                    parser_panic(p);
+                    goto panic;
                 }
             } else {
                 if (!(parser_expect(p, TOKEN_COMMENT) ||
                       parser_expect(p, TOKEN_NEWLINE))) {
-                    parser_panic(p);
+                    goto panic;
                 }
-                qword constant = 0;
-                if (strncmp(current->value, "0x", 2) == 0) {
-                    char *endptr;
-                    // TODO handle errors
-                    constant = strtol(current->value, &endptr, 16);
-                } else {
-                    constant = atoll(current->value);
-                }
-                last_instruction.src = constant;
+                last_instruction.src = (strncmp(current->value, "0x", 2) == 0)
+                                           ? parser_parse_hex(current->value)
+                                           : atoll(current->value);
+
                 da_push(bc->code_segment,
                         bc_encode_instruction(&last_instruction));
                 p->current_address++;
@@ -335,7 +356,7 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
         case TOKEN_ADDRESS:
             if (!(parser_expect(p, TOKEN_COMMENT) ||
                   parser_expect(p, TOKEN_NEWLINE))) {
-                parser_panic(p);
+                goto panic;
             }
             // Label case e.g. a JMP, check for the presence of the
             // label in the labels array
@@ -367,13 +388,13 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
         case TOKEN_COMMENT:
             if (!(parser_expect(p, TOKEN_NEWLINE) ||
                   parser_expect(p, TOKEN_EOF))) {
-                parser_panic(p);
+                goto panic;
             }
             break;
         case TOKEN_UNKNOWN:
             fprintf(stderr, "unexpected token %s at line %ld\n",
                     parser_current(p)->value, p->lines);
-            exit(EXIT_FAILURE);
+            return -1;
             break;
         case TOKEN_EOF:
             break;
@@ -384,4 +405,8 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
     bc->data_addr = p->label_list.base_offset;
 
     return 0;
+
+panic:
+
+    return parser_panic(p);
 }

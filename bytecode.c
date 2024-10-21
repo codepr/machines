@@ -275,9 +275,16 @@ Byte_Code *bc_from_source(const char *source)
 
     struct parser p;
     parser_init(&p, &tl);
-    parser_parse_source(&p, bc);
+    int err = parser_parse_source(&p, bc);
+    if (err < 0)
+        goto panic;
 
     return bc;
+
+panic:
+    bc_free(bc);
+    lexer_token_list_free(&tl);
+    return NULL;
 }
 
 Byte_Code *bc_slurp(const char *path)
@@ -337,7 +344,9 @@ Byte_Code *bc_slurp(const char *path)
 
     struct parser p;
     parser_init(&p, &tl);
-    parser_parse_source(&p, bc);
+    int err = parser_parse_source(&p, bc);
+    if (err < 0)
+        goto panic;
 
     free(buffer);
 
@@ -345,6 +354,13 @@ Byte_Code *bc_slurp(const char *path)
 
 exit:
     free(buffer);
+    fclose(fp);
+    return NULL;
+
+panic:
+    free(buffer);
+    bc_free(bc);
+    lexer_token_list_free(&tl);
     fclose(fp);
     return NULL;
 }
@@ -370,9 +386,19 @@ Byte_Code *bc_load(const char *path)
 
     struct parser p;
     parser_init(&p, &tl);
-    parser_parse_source(&p, bc);
+    int err = parser_parse_source(&p, bc);
+    if (err < 0)
+        goto panic;
+
+    fclose(fp);
 
     return bc;
+
+panic:
+    bc_free(bc);
+    fclose(fp);
+    lexer_token_list_free(&tl);
+    return NULL;
 }
 
 void bc_free(Byte_Code *bc)

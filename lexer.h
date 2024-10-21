@@ -43,6 +43,8 @@ struct token_list {
 
 void lexer_token_list_init(struct token_list *tl, size_t capacity);
 
+void lexer_token_list_free(struct token_list *tl);
+
 void lexer_init(struct lexer *l, char *buffer, size_t size);
 
 int lexer_next(struct lexer *l, struct token *t, Token_Type prev);

@@ -10,6 +10,13 @@
 #define LABEL_END     ':'
 #define NEWLINE       '\n'
 
+//
+//  *******************
+//  * MAPPING HELPERS *
+//  ******************
+//
+//  These static maps are used to determine the token types during the lexical
+//  analysis of the source code
 static const char *instructions[] = {
     "nop", "clf", "cmp", "cmi",  "mov", "ldi",     "ldr", "sti", "str",
     "psr", "psm", "psi", "pop",  "pom", "add",     "adi", "sub", "sbi",
@@ -241,6 +248,8 @@ void lexer_token_list_init(struct token_list *tl, size_t capacity)
 {
     da_init(tl, capacity);
 }
+
+void lexer_token_list_free(struct token_list *tl) { free(tl->data); }
 
 const char *lexer_show_token(const struct token *t) { return tokens[t->type]; }
 

@@ -1,4 +1,4 @@
 .main
-    ldi ax, 1
+    mov ax, 1
     xor bx, bx
     syscall

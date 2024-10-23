@@ -7,26 +7,26 @@ buf: db 1024, 10        ; reserve 1024 bytes for input
 
 .main
 ; Initialize variables
-ldi ax, 10          ; Initialize starting value 10
-ldi bx, 9           ; Initialize second value to AX - 1
+mov ax, 10          ; Initialize starting value 10
+mov bx, 9           ; Initialize second value to AX - 1
 
 ; Factorial loop
 loop:
 mul ax, bx       ; ax = ax * ax - 1
 dec bx           ; bx = bx - 1 decrement the counter
-cmi bx, 0        ; Check if 0 is reached
+cmp bx, 0        ; Check if 0 is reached
 jne loop         ; Jump back to loop if bx is greater than 0
-ldi bx, 1
-ldr cx, msg
-ldi dx, 14
+mov bx, 1
+mov cx, msg
+mov dx, 14
 syscall
-ldi bx, 0
-ldr cx, buf
-ldi dx, 0xff
+mov bx, 0
+mov cx, buf
+mov dx, 0xff
 syscall
-ldi bx, 1
-ldr cx, buf
-ldi dx, 3
+mov bx, 1
+mov cx, buf
+mov dx, 3
 syscall
 
 hlt              ; Halt execution

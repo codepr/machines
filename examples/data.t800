@@ -4,9 +4,9 @@
 msg: db "Hello", 5
 
 .main
-    ; Initialize variables
-    LDI AX, 1   ; Set syscall to write
-    LDI BX, 1   ; Set file descriptor to STDOUT
-    LDR CX, msg ; Set label address to CX
-    LDI DX, 6   ; Set bytes len to 6 which means "Hello" + nul char
-    SYSCALL     ; Interrupt and make system call
+; Initialize variables
+MOV AX, 1   ; Set syscall to write
+MOV BX, 1   ; Set file descriptor to STDOUT
+MOV CX, msg ; Set label address to CX
+MOV DX, 6   ; Set bytes len to 6 which means "Hello" + nul char
+SYSCALL     ; Interrupt and make system call

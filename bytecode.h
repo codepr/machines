@@ -40,27 +40,14 @@ typedef enum {
     NOP,             // No operation
     CLF,             // Clear flags
     CMP,             // Compare two registers
-    CMI,             // Compare immediate value with a register
     MOV,             // Move data from one register to another
-    LDI,             // Load immediate value into register
-    LDR,             // Load value from memory to register
-    STI,             // Store immediate value in memory
-    STR,             // Store register value in memory
-    PSR,             // Push register value to stack
-    PSM,             // Push memory value to stack
-    PSI,             // Push immediate value to stack
+    PSH,             // Push value to stack
     POP,             // Pop value from stack into register
-    POM,             // Pop value from stack into memory
     ADD,             // Add two registers
-    ADI,             // Add immediate value to register
     SUB,             // Subtract two registers
-    SBI,             // Subtract immediate value from register
     MUL,             // Multiply two registers
-    MLI,             // Multiply register by immediate value
     DIV,             // Divide two registers
-    DVI,             // Divide register by immediate value
     MOD,             // Modulo operation on two registers
-    MDI,             // Modulo operation on register and immediate value
     INC,             // Increment register
     DEC,             // Decrement register
     AND,             // Bitwise AND between registers

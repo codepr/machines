@@ -122,105 +122,72 @@ typedef struct {
     OP_Type dst, src;
 } Instruction_Def;
 
-static const char *reg_to_str[NUM_REGISTERS] = {"AX", "BX", "CX", "DX"};
+static const char *reg_to_str[NUM_REGISTERS]    = {"AX", "BX", "CX", "DX"};
 
-static const Instruction_Def instr_defs[NUM_INSTRUCTIONS] = {
-    {.name = "NOP", .dst = OP_NONE, .src = OP_NONE},
-    {.name = "CLF", .dst = OP_NONE, .src = OP_NONE},
-    {.name = "CMP", .dst = OP_REG, .src = OP_REG},
-    {.name = "CMI", .dst = OP_REG, .src = OP_IMM},
-    {.name = "MOV", .dst = OP_REG, .src = OP_REG},
-    {.name = "LDI", .dst = OP_REG, .src = OP_IMM},
-    {.name = "LDR", .dst = OP_REG, .src = OP_ADDR},
-    {.name = "STI", .dst = OP_ADDR, .src = OP_IMM},
-    {.name = "STR", .dst = OP_ADDR, .src = OP_REG},
-    {.name = "PSR", .dst = OP_REG, .src = OP_NONE},
-    {.name = "PSM", .dst = OP_ADDR, .src = OP_NONE},
-    {.name = "PSI", .dst = OP_IMM, .src = OP_NONE},
-    {.name = "POP", .dst = OP_REG, .src = OP_NONE},
-    {.name = "POM", .dst = OP_ADDR, .src = OP_NONE},
-    {.name = "ADD", .dst = OP_REG, .src = OP_REG},
-    {.name = "ADI", .dst = OP_REG, .src = OP_IMM},
-    {.name = "SUB", .dst = OP_REG, .src = OP_REG},
-    {.name = "SBI", .dst = OP_REG, .src = OP_IMM},
-    {.name = "MUL", .dst = OP_REG, .src = OP_REG},
-    {.name = "MLI", .dst = OP_REG, .src = OP_IMM},
-    {.name = "DIV", .dst = OP_REG, .src = OP_REG},
-    {.name = "DVI", .dst = OP_REG, .src = OP_IMM},
-    {.name = "MOD", .dst = OP_REG, .src = OP_REG},
-    {.name = "MDI", .dst = OP_REG, .src = OP_IMM},
-    {.name = "INC", .dst = OP_REG, .src = OP_NONE},
-    {.name = "DEC", .dst = OP_REG, .src = OP_NONE},
-    {.name = "AND", .dst = OP_REG, .src = OP_REG},
-    {.name = "BOR", .dst = OP_REG, .src = OP_REG},
-    {.name = "XOR", .dst = OP_REG, .src = OP_REG},
-    {.name = "NOT", .dst = OP_REG, .src = OP_NONE},
-    {.name = "SHL", .dst = OP_REG, .src = OP_IMM},
-    {.name = "SHR", .dst = OP_REG, .src = OP_IMM},
-    {.name = "JMP", .dst = OP_ADDR, .src = OP_NONE},
-    {.name = "JEQ", .dst = OP_ADDR, .src = OP_NONE},
-    {.name = "JNE", .dst = OP_ADDR, .src = OP_NONE},
-    {.name = "JLE", .dst = OP_ADDR, .src = OP_NONE},
-    {.name = "JLT", .dst = OP_ADDR, .src = OP_NONE},
-    {.name = "JGE", .dst = OP_ADDR, .src = OP_NONE},
-    {.name = "JGT", .dst = OP_ADDR, .src = OP_NONE},
-    {.name = "CALL", .dst = OP_ADDR, .src = OP_NONE},
-    {.name = "RET", .dst = OP_NONE, .src = OP_NONE},
-    {.name = "SYSCALL", .dst = OP_NONE, .src = OP_NONE},
-    {.name = "HLT", .dst = OP_NONE, .src = OP_NONE}
-
+static const char *instr_defs[NUM_INSTRUCTIONS] = {
+    "NOP", "CLF", "CMP", "MOV", "PSH", "POP", "ADD",  "SUB", "MUL",     "DIV",
+    "MOD", "INC", "DEC", "AND", "BOR", "XOR", "NOT",  "SHL", "SHR",     "JMP",
+    "JEQ", "JNE", "JLE", "JLT", "JGE", "JGT", "CALL", "RET", "SYSCALL", "HLT",
 };
 
-static const char *instruction_to_str(const struct instruction_line *instr,
-                                      char *dst)
+static const char *instruction_line_show(const struct instruction_line *instr,
+                                         char *dst)
 {
     if (instr->op < 0 || instr->op >= NUM_INSTRUCTIONS) {
         fprintf(stderr, "unrecognized assembly instruction %d\n", instr->op);
         return NULL;
     }
 
-    Instruction_Def idef = instr_defs[instr->op];
-    size_t nbytes        = 0;
+    const char *iname = instr_defs[instr->op];
+    size_t nbytes     = 0;
 
-    switch (idef.dst) {
-    case OP_IMM: {
-        nbytes =
-            snprintf(dst, INSTR_SHOW_LEN, "%s %lli", idef.name, instr->dst);
+    switch (instr->sem) {
+    case IS_ATOM:
+        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s", iname);
         break;
-    }
-    case OP_REG: {
-        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s %s", idef.name,
+    case IS_SRC_IMM:
+        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s %lli", iname, instr->src);
+        break;
+    case IS_SRC_REG:
+        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s %s", iname,
                           reg_to_str[instr->dst]);
         break;
-    }
-    case OP_ADDR: {
+    case IS_SRC_MEM:
         nbytes =
-            snprintf(dst, INSTR_SHOW_LEN, "%s [0x%lli]", idef.name, instr->dst);
+            snprintf(dst, INSTR_SHOW_LEN, "%s [0x%lli]", iname, instr->dst);
         break;
-    }
-    default:
-        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s", idef.name);
+    case IS_DST_REG:
+        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s %s", iname,
+                          reg_to_str[instr->dst]);
         break;
-    }
-
-    switch (idef.src) {
-    case OP_IMM: {
-        nbytes = snprintf(dst + nbytes, INSTR_SHOW_LEN, " %lli", instr->src);
-        break;
-    }
-    case OP_REG: {
-        nbytes = snprintf(dst + nbytes, INSTR_SHOW_LEN, " %s",
-                          reg_to_str[instr->src]);
-        break;
-    }
-    case OP_ADDR: {
+    case IS_DST_MEM:
         nbytes =
-            snprintf(dst + nbytes, INSTR_SHOW_LEN, " [0x%llx]", instr->src);
+            snprintf(dst, INSTR_SHOW_LEN, "%s [0x%lli]", iname, instr->dst);
         break;
-    }
+    case IS_SEM_REG_REG:
+        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s %s %s", iname,
+                          reg_to_str[instr->dst], reg_to_str[instr->src]);
+        break;
+    case IS_SEM_REG_MEM:
+        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s [0x%lli] %s", iname,
+                          instr->dst, reg_to_str[instr->src]);
+        break;
+    case IS_SEM_IMM_MEM:
+        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s [0x%lli] %lli", iname,
+                          instr->dst, instr->src);
+        break;
+    case IS_SEM_MEM_REG:
+        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s %s [0x%lli]", iname,
+                          reg_to_str[instr->dst], instr->src);
+        break;
+    case IS_SEM_IMM_REG:
+        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s %s %lli", iname,
+                          reg_to_str[instr->dst], instr->src);
+        break;
     default:
         break;
     }
+    (void)nbytes;
 
     return dst;
 }
@@ -241,7 +208,7 @@ void bc_disassemble(const Byte_Code *const bc)
         const struct instruction_line ins = bc_decode_instruction(code[i]);
         printf("0x%04lX\t%-16s%02X %02X %02X %02X %02X %02X %02X %02X  "
                "0x%04lX",
-               i, instruction_to_str(&ins, instr_str),
+               i, instruction_line_show(&ins, instr_str),
                (unsigned short)(code[i] >> 56 & 0xFF),
                (unsigned short)(code[i] >> 48 & 0xFF),
                (unsigned short)(code[i] >> 40 & 0xFF),
@@ -361,7 +328,6 @@ panic:
     free(buffer);
     bc_free(bc);
     lexer_token_list_free(&tl);
-    fclose(fp);
     return NULL;
 }
 

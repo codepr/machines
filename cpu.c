@@ -49,6 +49,16 @@ static void set_flags(Cpu *cpu, qword a, qword b)
     cpu->flags[2] = (result > 0);
 }
 
+static qword *set_operands(Cpu *cpu, const struct instruction_line *i,
+                           qword *src)
+{
+    *src = (i->sem & IS_SRC_REG)   ? cpu->r[i->src]
+           : (i->sem & IS_SRC_MEM) ? cpu->memory[i->src]
+                                   : i->src;
+
+    return (i->sem & IS_DST_REG) ? &cpu->r[i->dst] : &cpu->memory[i->dst];
+}
+
 static Exec_Result execute(Cpu *cpu, struct instruction_line *instr)
 {
     switch (instr->op) {
@@ -56,97 +66,84 @@ static Exec_Result execute(Cpu *cpu, struct instruction_line *instr)
         break;
     }
     case MOV: {
-        cpu->r[instr->dst] = cpu->r[instr->src];
+        if (instr->sem & IS_SRC_REG && instr->sem & IS_DST_REG)
+            cpu->r[instr->dst] = cpu->r[instr->src];
+        else if (instr->sem & IS_SRC_REG && instr->sem & IS_DST_MEM)
+            cpu->memory[instr->dst] = cpu->r[instr->src];
+        else if (instr->sem & IS_SRC_MEM && instr->sem & IS_DST_REG)
+            cpu->r[instr->dst] = cpu->memory[instr->src];
+        else if (instr->sem & IS_SRC_IMM && instr->sem & IS_DST_REG)
+            cpu->r[instr->dst] = instr->src;
+        else if (instr->sem & IS_SRC_IMM && instr->sem & IS_DST_MEM)
+            cpu->memory[instr->dst] = instr->src;
+
         break;
     }
-    case LDI: {
-        cpu->r[instr->dst] = instr->src;
-        break;
-    }
-    case LDR: {
-        cpu->r[instr->dst] = cpu->memory[instr->src];
-        break;
-    }
-    case STI: {
-        cpu->memory[instr->dst] = instr->src;
-        break;
-    }
-    case STR: {
-        cpu->memory[instr->dst] = cpu->r[instr->src];
-        break;
-    }
-    case PSI: {
-        *cpu->sp++ = instr->src;
-        break;
-    }
-    case PSR: {
-        *cpu->sp++ = cpu->r[instr->dst];
-        break;
-    }
-    case PSM: {
-        *cpu->sp++ = cpu->memory[instr->src];
+    case PSH: {
+        if (instr->sem & IS_DST_REG)
+            *cpu->sp++ = cpu->r[instr->dst];
+        else if (instr->sem & IS_DST_MEM)
+            *cpu->sp++ = cpu->memory[instr->dst];
+        else if (instr->sem & IS_SRC_IMM)
+            *cpu->sp++ = instr->src;
+
         break;
     }
     case POP: {
         cpu->r[instr->dst] = *--cpu->sp;
         break;
     }
-    case POM: {
-        cpu->memory[instr->src] = *--cpu->sp;
-        break;
-    }
     case ADD: {
-        cpu->r[instr->dst] += cpu->r[instr->src];
-        break;
-    }
-    case ADI: {
-        cpu->r[instr->dst] += instr->src;
+        qword src  = 0;
+        qword *dst = set_operands(cpu, instr, &src);
+
+        *dst += src;
         break;
     }
     case SUB: {
-        cpu->r[instr->dst] -= cpu->r[instr->src];
-        break;
-    }
-    case SBI: {
-        cpu->r[instr->dst] -= instr->src;
+        qword src  = 0;
+        qword *dst = set_operands(cpu, instr, &src);
+
+        *dst -= src;
         break;
     }
     case MUL: {
-        cpu->r[instr->dst] *= cpu->r[instr->src];
-        break;
-    }
-    case MLI: {
-        cpu->r[instr->dst] *= instr->src;
+        qword src  = 0;
+        qword *dst = set_operands(cpu, instr, &src);
+
+        *dst *= src;
+
         break;
     }
     case DIV: {
-        if (cpu->r[instr->src] == 0)
+        qword src  = 0;
+        qword *dst = set_operands(cpu, instr, &src);
+
+        if (src == 0)
             return E_DIV_BY_ZERO;
 
-        cpu->r[instr->dst] /= cpu->r[instr->src];
-        break;
-    }
-    case DVI: {
-        if (instr->src == 0)
-            return E_DIV_BY_ZERO;
-
-        cpu->r[instr->dst] /= instr->src;
+        *dst /= src;
         break;
     }
     case MOD: {
-        cpu->r[instr->dst] %= cpu->r[instr->src];
-        break;
-    }
-    case MDI: {
-        cpu->r[instr->dst] %= instr->src;
+        qword src  = 0;
+        qword *dst = set_operands(cpu, instr, &src);
+
+        *dst %= src;
         break;
     }
     case INC: {
-        cpu->r[instr->dst]++;
+        if (instr->sem & IS_SRC_MEM)
+            cpu->memory[instr->dst]++;
+        else
+            cpu->r[instr->dst]++;
         break;
     }
     case DEC: {
-        cpu->r[instr->dst]--;
+        if (instr->sem & IS_SRC_MEM)
+            cpu->memory[instr->dst]++;
+        else
+            cpu->r[instr->dst]--;
         break;
     }
     case CLF: {
@@ -154,11 +151,10 @@ static Exec_Result execute(Cpu *cpu, struct instruction_line *instr)
         break;
     }
     case CMP: {
-        set_flags(cpu, cpu->r[instr->dst], cpu->r[instr->src]);
-        break;
-    }
-    case CMI: {
-        set_flags(cpu, cpu->r[instr->dst], instr->src);
+        qword src  = 0;
+        qword *dst = set_operands(cpu, instr, &src);
+
+        set_flags(cpu, *dst, src);
         break;
     }
     case JMP: {
@@ -239,6 +235,7 @@ static Exec_Result execute(Cpu *cpu, struct instruction_line *instr)
         case 1:
             syscall_write(cpu->r[BX], &cpu->memory[cpu->r[CX]],
                           cpu->r[DX] * sizeof(qword));
+            fflush(stdout);
             break;
         case 64:
             cpu->r[AX] = syscall_atoi(&cpu->memory[cpu->r[CX]]);

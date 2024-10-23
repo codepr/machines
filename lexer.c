@@ -18,11 +18,10 @@
 //  These static maps are used to determine the token types during the lexical
 //  analysis of the source code
 static const char *instructions[] = {
-    "nop", "clf", "cmp", "cmi",  "mov", "ldi",     "ldr", "sti", "str",
-    "psr", "psm", "psi", "pop",  "pom", "add",     "adi", "sub", "sbi",
-    "mul", "mli", "div", "dvi",  "mod", "mdi",     "inc", "dec", "and",
-    "bor", "xor", "not", "shl",  "shr", "jmp",     "jeq", "jne", "jle",
-    "jlt", "jge", "jgt", "call", "ret", "syscall", "hlt", NULL};
+    "nop", "clf", "cmp",  "mov", "psh",     "pop", "add", "sub",
+    "mul", "div", "mod",  "inc", "dec",     "and", "bor", "xor",
+    "not", "shl", "shr",  "jmp", "jeq",     "jne", "jle", "jlt",
+    "jge", "jgt", "call", "ret", "syscall", "hlt", NULL};
 
 static const char *registers[]  = {"ax", "bx", "cx", "dx", NULL};
 static const char *directives[] = {"db", "dw", NULL};

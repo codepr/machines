@@ -84,48 +84,22 @@ static Instruction_Set parse_instruction(const char *str)
         return MOV;
     if (strncasecmp(str, "MOD", 3) == 0)
         return MOD;
-    if (strncasecmp(str, "MDI", 3) == 0)
-        return MDI;
     if (strncasecmp(str, "CLF", 3) == 0)
         return CLF;
     if (strncasecmp(str, "CMP", 3) == 0)
         return CMP;
-    if (strncasecmp(str, "CMI", 3) == 0)
-        return CMI;
-    if (strncasecmp(str, "LDI", 3) == 0)
-        return LDI;
-    if (strncasecmp(str, "LDR", 3) == 0)
-        return LDR;
-    if (strncasecmp(str, "STI", 3) == 0)
-        return STI;
-    if (strncasecmp(str, "STR", 3) == 0)
-        return STR;
-    if (strncasecmp(str, "PSR", 3) == 0)
-        return PSR;
-    if (strncasecmp(str, "PSM", 3) == 0)
-        return PSM;
-    if (strncasecmp(str, "PSI", 3) == 0)
-        return PSI;
-    if (strncasecmp(str, "POM", 3) == 0)
-        return POM;
+    if (strncasecmp(str, "PSH", 3) == 0)
+        return PSH;
     if (strncasecmp(str, "POP", 3) == 0)
         return POP;
     if (strncasecmp(str, "ADD", 3) == 0)
         return ADD;
-    if (strncasecmp(str, "ADI", 3) == 0)
-        return ADI;
     if (strncasecmp(str, "SUB", 3) == 0)
         return SUB;
-    if (strncasecmp(str, "SBI", 3) == 0)
-        return SBI;
     if (strncasecmp(str, "MUL", 3) == 0)
         return MUL;
-    if (strncasecmp(str, "MLI", 3) == 0)
-        return MLI;
     if (strncasecmp(str, "DIV", 3) == 0)
         return DIV;
-    if (strncasecmp(str, "DVI", 3) == 0)
-        return DVI;
     if (strncasecmp(str, "INC", 3) == 0)
         return INC;
     if (strncasecmp(str, "DEC", 3) == 0)
@@ -226,7 +200,7 @@ void parser_init(struct parser *p, const struct token_list *tokens)
 int parser_parse_source(struct parser *p, Byte_Code *bc)
 {
     p->lines                                 = 1;
-    struct instruction_line last_instruction = {0, -1, -1};
+    struct instruction_line last_instruction = {0, IS_ATOM, -1, -1};
     // TOOD consider a dispatch table, the switch is still contianed tho
     while (parser_peek(p)->type != TOKEN_EOF) {
         struct token *current = parser_current(p);
@@ -253,6 +227,13 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
                 return -1;
             }
             last_instruction.op = op;
+            if (parser_expect(p, TOKEN_ADDRESS))
+                last_instruction.sem = IS_DST_MEM;
+            else if (parser_expect(p, TOKEN_REGISTER))
+                last_instruction.sem = IS_DST_REG;
+            else if (parser_expect(p, TOKEN_CONSTANT))
+                last_instruction.sem = IS_SRC_IMM;
+
             if (parser_expect(p, TOKEN_COMMENT) ||
                 parser_expect(p, TOKEN_NEWLINE)) {
                 da_push(bc->code_segment,
@@ -280,8 +261,10 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
             }
             if (last_instruction.dst == -1) {
                 last_instruction.dst = reg;
+                // PSH, POP, INC, DEC
                 if (parser_expect(p, TOKEN_COMMENT) ||
                     parser_expect(p, TOKEN_NEWLINE)) {
+                    last_instruction.sem = IS_DST_REG;
                     da_push(bc->code_segment,
                             bc_encode_instruction(&last_instruction));
                     p->current_address++;
@@ -295,7 +278,9 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
                     goto panic;
                 }
             } else {
+                // MOV, ADD, SUB, NUL, DIV, AND, BOR, XOR, NOT
                 last_instruction.src = reg;
+                last_instruction.sem |= IS_SRC_REG;
                 if (!(parser_expect(p, TOKEN_COMMENT) ||
                       parser_expect(p, TOKEN_NEWLINE))) {
                     goto panic;
@@ -339,9 +324,12 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
                     goto panic;
                 }
             } else {
+                // PSH, MOV, ADD, SUB, NUL, DIV, AND, BOR, XOR, NOT
                 if (!(parser_expect(p, TOKEN_COMMENT) ||
                       parser_expect(p, TOKEN_NEWLINE))) {
                     goto panic;
+                } else {
+                    last_instruction.sem |= IS_SRC_IMM;
                 }
                 last_instruction.src = (strncmp(current->value, "0x", 2) == 0)
                                            ? parser_parse_hex(current->value)
@@ -357,7 +345,11 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
             if (!(parser_expect(p, TOKEN_COMMENT) ||
                   parser_expect(p, TOKEN_NEWLINE))) {
                 goto panic;
+            } else {
+                if (last_instruction.sem != IS_DST_MEM)
+                    last_instruction.sem |= IS_SRC_MEM;
             }
+
             // Label case e.g. a JMP, check for the presence of the
             // label in the labels array
             for (size_t i = 0; i < p->label_list.length; ++i) {
@@ -381,6 +373,12 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
         case TOKEN_DIRECTIVE:
             break;
         case TOKEN_COMMA:
+            if (parser_expect(p, TOKEN_REGISTER))
+                last_instruction.sem |= IS_SRC_REG;
+            else if (parser_expect(p, TOKEN_CONSTANT))
+                last_instruction.sem |= IS_SRC_IMM;
+            else if (parser_expect(p, TOKEN_ADDRESS))
+                last_instruction.sem |= IS_SRC_MEM;
             break;
         case TOKEN_NEWLINE:
             p->lines++;

@@ -15,9 +15,10 @@ static void die(int line_nr, const char *fmt, ...)
     exit(1);
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
-    Byte_Code *bc = bc_load("examples/mul.t800");
+    const char *asm = argc > 1 ? argv[1] : "examples/mul.t800";
+    Byte_Code *bc   = bc_load(asm);
     if (!bc)
         die(__LINE__, "error parsing source");
 

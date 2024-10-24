@@ -1,5 +1,5 @@
-#include "syscall.h"
 #include "vm.h"
+#include "syscall.h"
 #include <stdio.h>
 #include <string.h>
 

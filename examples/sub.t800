@@ -1,0 +1,24 @@
+; Subtract of two numbers
+
+.data
+num1: dw 1
+num2: dw 1
+
+.main
+; Initialize variables
+mov bx, 0         ; read call
+mov cx, num1      ; Initialize to address of the num1 reserved qword space
+mov dx, 1
+syscall
+mov bx, 64        ; atoi call
+syscall           ; now ax contains the integer value of num1
+psh ax            ; save ax content
+mov bx, 0         ; read call
+mov cx, num2      ; Initialize to address of the num2 reserved qword space
+mov dx, 1
+syscall
+mov bx, 64        ; atoi call
+syscall           ; now ax contains the integer value of num1
+pop dx            ; pop the stack (ax) into dx
+sub dx, ax        ; add registers
+hlt

@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 
+static void clear_flags(VM *vm);
+
 static void reset(VM *vm, qword *code_segment, hword *data_segment,
                   size_t data_len)
 {
@@ -25,6 +27,8 @@ static void reset(VM *vm, qword *code_segment, hword *data_segment,
     for (size_t i = DATA_OFFSET * 2, j = 0; j < data_len - DATA_OFFSET;
          ++i, ++j)
         vm->memory[i] = data_segment[j];
+
+    clear_flags(vm);
 }
 
 static qword fetch(VM *vm) { return vm->bcode[vm->pc++]; }
@@ -36,42 +40,74 @@ static struct instruction_line decode(qword einstr)
 
 static void clear_flags(VM *vm)
 {
-    vm->flags[0] = 0;
-    vm->flags[1] = 0;
-    vm->flags[2] = 0;
+    vm->flags[FL_ZRO] = 0;
+    vm->flags[FL_NEG] = 0;
+    vm->flags[FL_POS] = 0;
 }
 
-static void set_flags(VM *vm, qword a, qword b)
+static void set_flags(VM *vm, qword v, int type)
 {
-    qword result = a - b;
-    vm->flags[0] = (result == 0);
-    vm->flags[1] = (result < 0);
-    vm->flags[2] = (result > 0);
+    clear_flags(vm);
+    if (type == 0) {
+        if (vm->r[v] == 0) {
+            vm->flags[FL_ZRO] = 1;
+        } else if (vm->r[v] >> 63) {
+            vm->flags[FL_NEG] = 1;
+        } else {
+            vm->flags[FL_POS] = 1;
+        }
+    } else {
+        if (vm->memory[v] == 0) {
+            vm->flags[FL_ZRO] = 1;
+        } else if (vm->memory[v] >> 63) {
+            vm->flags[FL_NEG] = 1;
+        } else {
+            vm->flags[FL_POS] = 1;
+        }
+    }
 }
 
-static qword *set_operands(VM *vm, const struct instruction_line *i, qword *src)
+static uint64_t sign_extend(qword x, int bit_count)
+{
+    if ((x >> (bit_count - 1)) & 1) {
+        // If the sign bit is set, extend the sign by setting the upper bits to
+        // 1
+        x |= (0xFFFFFFFFFFFFFFFF << bit_count);
+    }
+    return x;
+}
+
+static int set_operands(VM *vm, const struct instruction_line *i, qword *src,
+                        qword **dst)
 {
     *src = (i->sem & IS_SRC_REG)   ? vm->r[i->src]
            : (i->sem & IS_SRC_MEM) ? vm->memory[i->src]
-                                   : i->src;
+                                   : sign_extend(i->src, 27);
 
-    return (i->sem & IS_DST_REG) ? &vm->r[i->dst] : &vm->memory[i->dst];
+    if (i->sem & IS_DST_REG) {
+        *dst = &vm->r[i->dst];
+        return 0;
+    }
+    *dst = &vm->memory[i->dst];
+    return 1;
 }
 
 static Exec_Result execute(VM *vm, struct instruction_line *instr)
 {
     switch (instr->op) {
-    case NOP: {
+    case OP_NOP: {
         break;
     }
-    case MOV: {
+    case OP_MOV: {
         qword src  = 0;
-        qword *dst = set_operands(vm, instr, &src);
+        qword *dst = NULL;
+        int type   = set_operands(vm, instr, &src, &dst);
 
         *dst       = src;
+        set_flags(vm, instr->dst, type);
         break;
     }
-    case PSH: {
+    case OP_PSH: {
         if (instr->sem & IS_DST_REG)
             *vm->sp++ = vm->r[instr->dst];
         else if (instr->sem & IS_DST_MEM)
@@ -81,145 +117,161 @@ static Exec_Result execute(VM *vm, struct instruction_line *instr)
 
         break;
     }
-    case POP: {
+    case OP_POP: {
         if (instr->sem & IS_DST_REG)
             vm->r[instr->dst] = *--vm->sp;
         else if (instr->sem & IS_DST_MEM)
             vm->memory[instr->dst] = *--vm->sp;
         break;
     }
-    case ADD: {
+    case OP_ADD: {
         qword src  = 0;
-        qword *dst = set_operands(vm, instr, &src);
+        qword *dst = NULL;
+        int type   = set_operands(vm, instr, &src, &dst);
 
         *dst += src;
+        set_flags(vm, instr->dst, type);
         break;
     }
-    case SUB: {
+    case OP_SUB: {
         qword src  = 0;
-        qword *dst = set_operands(vm, instr, &src);
+        qword *dst = NULL;
+        int type   = set_operands(vm, instr, &src, &dst);
 
         *dst -= src;
+        set_flags(vm, instr->dst, type);
         break;
     }
-    case MUL: {
+    case OP_MUL: {
         qword src  = 0;
-        qword *dst = set_operands(vm, instr, &src);
+        qword *dst = NULL;
+        int type   = set_operands(vm, instr, &src, &dst);
 
         *dst *= src;
-
+        set_flags(vm, instr->dst, type);
         break;
     }
-    case DIV: {
+    case OP_DIV: {
         qword src  = 0;
-        qword *dst = set_operands(vm, instr, &src);
+        qword *dst = NULL;
+        int type   = set_operands(vm, instr, &src, &dst);
 
         if (src == 0)
             return E_DIV_BY_ZERO;
 
         *dst /= src;
+        set_flags(vm, instr->dst, type);
         break;
     }
-    case MOD: {
+    case OP_MOD: {
         qword src  = 0;
-        qword *dst = set_operands(vm, instr, &src);
+        qword *dst = NULL;
+        int type   = set_operands(vm, instr, &src, &dst);
 
         *dst %= src;
+        set_flags(vm, instr->dst, type);
         break;
     }
-    case INC: {
-        if (instr->sem & IS_SRC_MEM)
+    case OP_INC: {
+        int is_src_mem = (instr->sem & IS_SRC_MEM);
+        if (is_src_mem)
             vm->memory[instr->dst]++;
         else
             vm->r[instr->dst]++;
+
+        set_flags(vm, instr->dst, is_src_mem);
         break;
     }
-    case DEC: {
-        if (instr->sem & IS_SRC_MEM)
-            vm->memory[instr->dst]++;
+    case OP_DEC: {
+        int is_src_mem = (instr->sem & IS_SRC_MEM);
+        if (is_src_mem)
+            vm->memory[instr->dst]--;
         else
             vm->r[instr->dst]--;
+
+        set_flags(vm, instr->dst, is_src_mem);
         break;
     }
-    case CLF: {
+    case OP_CLF: {
         clear_flags(vm);
         break;
     }
-    case CMP: {
+    case OP_CMP: {
         qword src  = 0;
-        qword *dst = set_operands(vm, instr, &src);
+        qword *dst = NULL;
+        int type   = set_operands(vm, instr, &src, &dst);
 
-        set_flags(vm, *dst, src);
+        set_flags(vm, instr->dst, type);
         break;
     }
-    case JMP: {
+    case OP_JMP: {
         vm->pc = instr->dst;
         break;
     }
-    case JEQ: {
-        if (vm->flags[0])
+    case OP_JEQ: {
+        if (vm->flags[FL_ZRO])
             vm->pc = instr->dst;
         break;
     }
-    case JNE: {
-        if (!vm->flags[0])
+    case OP_JNE: {
+        if (!vm->flags[FL_ZRO])
             vm->pc = instr->dst;
         break;
     }
-    case JLE: {
-        if (vm->flags[0] || vm->flags[1])
+    case OP_JLE: {
+        if (vm->flags[FL_ZRO] || vm->flags[FL_NEG])
             vm->pc = instr->dst;
         break;
     }
-    case JLT: {
-        if (!vm->flags[0] && vm->flags[1])
+    case OP_JLT: {
+        if (!vm->flags[FL_ZRO] && vm->flags[FL_NEG])
             vm->pc = instr->dst;
         break;
     }
-    case JGE: {
-        if (vm->flags[0] || vm->flags[2])
+    case OP_JGE: {
+        if (vm->flags[FL_ZRO] || vm->flags[FL_POS])
             vm->pc = instr->dst;
         break;
     }
-    case JGT: {
-        if (!vm->flags[0] && vm->flags[2])
+    case OP_JGT: {
+        if (!vm->flags[FL_ZRO] && vm->flags[FL_POS])
             vm->pc = instr->dst;
         break;
     }
-    case AND: {
+    case OP_AND: {
         vm->r[instr->dst] &= vm->r[instr->src];
         break;
     }
-    case BOR: {
+    case OP_BOR: {
         vm->r[instr->dst] |= vm->r[instr->src];
         break;
     }
-    case XOR: {
+    case OP_XOR: {
         vm->r[instr->dst] ^= vm->r[instr->src];
         break;
     }
-    case NOT: {
+    case OP_NOT: {
         vm->r[instr->dst] = -vm->r[instr->src];
         break;
     }
-    case SHR: {
+    case OP_SHR: {
         vm->r[instr->dst] >>= vm->r[instr->src];
         break;
     }
-    case SHL: {
+    case OP_SHL: {
         vm->r[instr->dst] <<= vm->r[instr->src];
         break;
     }
-    case CALL: {
+    case OP_CALL: {
         *vm->sp++ = (vm->pc - 1);
         vm->pc    = instr->dst;
         break;
     }
-    case RET: {
+    case OP_RET: {
         vm->pc = *--vm->sp;
         break;
     }
-    case SYSCALL: {
+    case OP_SYSCALL: {
         switch (vm->r[BX]) {
         // STDIN
         case 0:
@@ -238,7 +290,7 @@ static Exec_Result execute(VM *vm, struct instruction_line *instr)
         }
         break;
     }
-    case HLT:
+    case OP_HLT:
         vm->run = false;
         break;
     default:
@@ -291,6 +343,8 @@ Exec_Result vm_run(VM *vm)
 
 void vm_print_registers(const VM *const vm)
 {
-    printf("AX: %llu BX: %llu CX: %llu DX: %llu\n", vm->r[AX], vm->r[BX],
-           vm->r[CX], vm->r[DX]);
+    printf("AX: %lli BX: %lli CX: %lli DX: %lli FL_ZRO: %i FL_NEG: %i FL_POS: "
+           "%i\n",
+           vm->r[AX], vm->r[BX], vm->r[CX], vm->r[DX], vm->flags[FL_ZRO],
+           vm->flags[FL_NEG], vm->flags[FL_POS]);
 }

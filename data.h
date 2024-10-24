@@ -9,7 +9,7 @@
 #define DATA_OFFSET (2 << 12) // 8K
 
 typedef uint8_t hword;
-typedef int64_t qword;
+typedef uint64_t qword;
 typedef enum {
     IS_ATOM        = 0x00,
     IS_SRC_REG     = 0x1,  // Source is a register

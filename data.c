@@ -4,13 +4,13 @@ qword data_encode_instruction(const struct instruction_line *i)
 {
     qword encoded = 0;
 
-    // Encode the 6-bit operation code (op)
-    encoded |= ((qword)i->op << 58);
+    // Encode the 5-bit operation code (op)
+    encoded |= ((qword)i->op << 59);
 
     // Encode the 5-bit instruction semantic (sem)
-    encoded |= ((qword)i->sem << 53);
+    encoded |= ((qword)i->sem << 54);
 
-    // Encode the 26-bit source operand (src)
+    // Encode the 27-bit source operand (src)
     encoded |= ((qword)(i->src & ADDR_MASK) << 27);
 
     // Encode the 27-bit destination operand (dst)
@@ -23,13 +23,13 @@ struct instruction_line data_decode_instruction(qword e_instr)
 {
     struct instruction_line instr;
 
-    // Decode the 6-bit operation code (op)
-    instr.op  = (hword)((e_instr >> 58) & 0x3F);
+    // Decode the 5-bit operation code (op)
+    instr.op  = (hword)((e_instr >> 59) & 0x1F);
 
     // Decode the 5-bit instruction semantic (sem)
-    instr.sem = (Instr_Semantic)((e_instr >> 53) & 0x1F);
+    instr.sem = (Instr_Semantic)((e_instr >> 54) & 0x1F);
 
-    // Decode the 26-bit source operand (src)
+    // Decode the 27-bit source operand (src)
     instr.src = (e_instr >> 27) & ADDR_MASK;
 
     // Decode the 27-bit destination operand (dst)

@@ -77,65 +77,65 @@ static int parser_reserve_space(Byte_Code *bc, size_t bytes)
 static Instruction_Set parse_instruction(const char *str)
 {
     if (strncasecmp(str, "NOP", 3) == 0)
-        return NOP;
+        return OP_NOP;
     if (strncasecmp(str, "HLT", 3) == 0)
-        return HLT;
+        return OP_HLT;
     if (strncasecmp(str, "MOV", 3) == 0)
-        return MOV;
+        return OP_MOV;
     if (strncasecmp(str, "MOD", 3) == 0)
-        return MOD;
+        return OP_MOD;
     if (strncasecmp(str, "CLF", 3) == 0)
-        return CLF;
+        return OP_CLF;
     if (strncasecmp(str, "CMP", 3) == 0)
-        return CMP;
+        return OP_CMP;
     if (strncasecmp(str, "PSH", 3) == 0)
-        return PSH;
+        return OP_PSH;
     if (strncasecmp(str, "POP", 3) == 0)
-        return POP;
+        return OP_POP;
     if (strncasecmp(str, "ADD", 3) == 0)
-        return ADD;
+        return OP_ADD;
     if (strncasecmp(str, "SUB", 3) == 0)
-        return SUB;
+        return OP_SUB;
     if (strncasecmp(str, "MUL", 3) == 0)
-        return MUL;
+        return OP_MUL;
     if (strncasecmp(str, "DIV", 3) == 0)
-        return DIV;
+        return OP_DIV;
     if (strncasecmp(str, "INC", 3) == 0)
-        return INC;
+        return OP_INC;
     if (strncasecmp(str, "DEC", 3) == 0)
-        return DEC;
+        return OP_DEC;
     if (strncasecmp(str, "CALL", 4) == 0)
-        return CALL;
+        return OP_CALL;
     if (strncasecmp(str, "SYSCALL", 7) == 0)
-        return SYSCALL;
+        return OP_SYSCALL;
     if (strncasecmp(str, "RET", 3) == 0)
-        return RET;
+        return OP_RET;
     if (strncasecmp(str, "JMP", 3) == 0)
-        return JMP;
+        return OP_JMP;
     if (strncasecmp(str, "JNE", 3) == 0)
-        return JNE;
+        return OP_JNE;
     if (strncasecmp(str, "JLE", 3) == 0)
-        return JLE;
+        return OP_JLE;
     if (strncasecmp(str, "JEQ", 3) == 0)
-        return JEQ;
+        return OP_JEQ;
     if (strncasecmp(str, "JLT", 3) == 0)
-        return JLT;
+        return OP_JLT;
     if (strncasecmp(str, "JGT", 3) == 0)
-        return JGT;
+        return OP_JGT;
     if (strncasecmp(str, "JGE", 3) == 0)
-        return JGE;
+        return OP_JGE;
     if (strncasecmp(str, "AND", 3) == 0)
-        return AND;
+        return OP_AND;
     if (strncasecmp(str, "BOR", 3) == 0)
-        return BOR;
+        return OP_BOR;
     if (strncasecmp(str, "XOR", 3) == 0)
-        return XOR;
+        return OP_XOR;
     if (strncasecmp(str, "NOT", 3) == 0)
-        return NOT;
+        return OP_NOT;
     if (strncasecmp(str, "SHL", 3) == 0)
-        return SHL;
+        return OP_SHL;
     if (strncasecmp(str, "SHR", 3) == 0)
-        return SHR;
+        return OP_SHR;
 
     return -1;
 }

@@ -37,36 +37,36 @@ typedef struct bytecode {
 // Enum representing the instruction set for the virtual machine or processor.
 // Each value corresponds to a specific instruction opcode.
 typedef enum {
-    NOP,             // No operation
-    CLF,             // Clear flags
-    CMP,             // Compare two registers
-    MOV,             // Move data from one register to another
-    PSH,             // Push value to stack
-    POP,             // Pop value from stack into register
-    ADD,             // Add two registers
-    SUB,             // Subtract two registers
-    MUL,             // Multiply two registers
-    DIV,             // Divide two registers
-    MOD,             // Modulo operation on two registers
-    INC,             // Increment register
-    DEC,             // Decrement register
-    AND,             // Bitwise AND between registers
-    BOR,             // Bitwise OR between registers
-    XOR,             // Bitwise XOR between registers
-    NOT,             // Bitwise NOT of a register
-    SHL,             // Shift left
-    SHR,             // Shift right
-    JMP,             // Jump to address
-    JEQ,             // Jump if equal
-    JNE,             // Jump if not equal
-    JLE,             // Jump if less than or equal
-    JLT,             // Jump if less than
-    JGE,             // Jump if greater than or equal
-    JGT,             // Jump if greater than
-    CALL,            // Call a subroutine
-    RET,             // Return from subroutine
-    SYSCALL,         // System call
-    HLT,             // Halt the execution
+    OP_NOP,          // No operation
+    OP_CLF,          // Clear flags
+    OP_CMP,          // Compare two registers
+    OP_MOV,          // Move data from one register to another
+    OP_PSH,          // Push value to stack
+    OP_POP,          // Pop value from stack into register
+    OP_ADD,          // Add two registers
+    OP_SUB,          // Subtract two registers
+    OP_MUL,          // Multiply two registers
+    OP_DIV,          // Divide two registers
+    OP_MOD,          // Modulo operation on two registers
+    OP_INC,          // Increment register
+    OP_DEC,          // Decrement register
+    OP_AND,          // Bitwise AND between registers
+    OP_BOR,          // Bitwise OR between registers
+    OP_XOR,          // Bitwise XOR between registers
+    OP_NOT,          // Bitwise NOT of a register
+    OP_SHL,          // Shift left
+    OP_SHR,          // Shift right
+    OP_JMP,          // Jump to address
+    OP_JEQ,          // Jump if equal
+    OP_JNE,          // Jump if not equal
+    OP_JLE,          // Jump if less than or equal
+    OP_JLT,          // Jump if less than
+    OP_JGE,          // Jump if greater than or equal
+    OP_JGT,          // Jump if greater than
+    OP_CALL,         // Call a subroutine
+    OP_RET,          // Return from subroutine
+    OP_SYSCALL,      // System call
+    OP_HLT,          // Halt the execution
     NUM_INSTRUCTIONS // Total number of instructions
 } Instruction_Set;
 

@@ -8,6 +8,7 @@
 #define STACK_SIZE 2048
 
 typedef enum { SUCCESS, E_DIV_BY_ZERO, E_UNKNOWN_INSTRUCTION } Exec_Result;
+typedef enum { FL_ZRO, FL_NEG, FL_POS } Flag;
 
 typedef struct vm_s {
     qword *bcode;
@@ -18,7 +19,7 @@ typedef struct vm_s {
     qword *sp;
     qword r[NUM_REGISTERS];
     // Flags
-    int64_t flags[3];
+    uint8_t flags[3];
     bool run;
 } VM;
 

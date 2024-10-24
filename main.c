@@ -1,6 +1,6 @@
 #include "bytecode.h"
-#include "cpu.h"
 #include "parser.h"
+#include "vm.h"
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -25,16 +25,16 @@ int main(int argc, char **argv)
     printf("\n* disassamble \n");
     bc_disassemble(bc);
 
-    Cpu *cpu = cpu_create(bc, 32768);
-    if (!cpu)
+    VM *vm = vm_create(bc, 32768);
+    if (!vm)
         die(__LINE__, "Error creating CPU");
 
     printf("\n* Execution \n");
-    cpu_run(cpu);
+    vm_run(vm);
     printf("\n\n* Register status\n\n");
-    cpu_print_registers(cpu);
+    vm_print_registers(vm);
 
-    cpu_free(cpu);
+    vm_free(vm);
     // bc_free(bc);
     bc_free(bc);
 

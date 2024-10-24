@@ -29,4 +29,5 @@ mov dx, 8
 syscall
 pop cx
 mul ax, cx
+inc ax
 hlt

@@ -144,55 +144,49 @@ static const char *instruction_line_show(const struct instruction_line *instr,
     }
 
     const char *iname = instr_defs[instr->op];
-    size_t nbytes     = 0;
 
     switch (instr->sem) {
     case IS_ATOM:
-        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s", iname);
+        snprintf(dst, INSTR_SHOW_LEN, "%s", iname);
         break;
     case IS_SRC_IMM:
-        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s %lli", iname, instr->src);
+        snprintf(dst, INSTR_SHOW_LEN, "%s %lli", iname, instr->src);
         break;
     case IS_SRC_REG:
-        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s %s", iname,
-                          reg_to_str[instr->dst]);
+        snprintf(dst, INSTR_SHOW_LEN, "%s %s", iname, reg_to_str[instr->dst]);
         break;
     case IS_SRC_MEM:
-        nbytes =
-            snprintf(dst, INSTR_SHOW_LEN, "%s [0x%lli]", iname, instr->dst);
+        snprintf(dst, INSTR_SHOW_LEN, "%s [0x%lli]", iname, instr->dst);
         break;
     case IS_DST_REG:
-        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s %s", iname,
-                          reg_to_str[instr->dst]);
+        snprintf(dst, INSTR_SHOW_LEN, "%s %s", iname, reg_to_str[instr->dst]);
         break;
     case IS_DST_MEM:
-        nbytes =
-            snprintf(dst, INSTR_SHOW_LEN, "%s [0x%lli]", iname, instr->dst);
+        snprintf(dst, INSTR_SHOW_LEN, "%s [0x%lli]", iname, instr->dst);
         break;
     case IS_SEM_REG_REG:
-        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s %s %s", iname,
-                          reg_to_str[instr->dst], reg_to_str[instr->src]);
+        snprintf(dst, INSTR_SHOW_LEN, "%s %s %s", iname, reg_to_str[instr->dst],
+                 reg_to_str[instr->src]);
         break;
     case IS_SEM_REG_MEM:
-        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s [0x%lli] %s", iname,
-                          instr->dst, reg_to_str[instr->src]);
+        snprintf(dst, INSTR_SHOW_LEN, "%s [0x%lli] %s", iname, instr->dst,
+                 reg_to_str[instr->src]);
         break;
     case IS_SEM_IMM_MEM:
-        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s [0x%lli] %lli", iname,
-                          instr->dst, instr->src);
+        snprintf(dst, INSTR_SHOW_LEN, "%s [0x%lli] %lli", iname, instr->dst,
+                 instr->src);
         break;
     case IS_SEM_MEM_REG:
-        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s %s [0x%lli]", iname,
-                          reg_to_str[instr->dst], instr->src);
+        snprintf(dst, INSTR_SHOW_LEN, "%s %s [0x%lli]", iname,
+                 reg_to_str[instr->dst], instr->src);
         break;
     case IS_SEM_IMM_REG:
-        nbytes = snprintf(dst, INSTR_SHOW_LEN, "%s %s %lli", iname,
-                          reg_to_str[instr->dst], instr->src);
+        snprintf(dst, INSTR_SHOW_LEN, "%s %s %lli", iname,
+                 reg_to_str[instr->dst], instr->src);
         break;
     default:
         break;
     }
-    (void)nbytes;
 
     return dst;
 }

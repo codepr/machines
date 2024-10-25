@@ -29,26 +29,25 @@ static inline void parser_advance(struct parser *p) { p->current++; }
 
 static void parser_append_label(struct parser *p)
 {
+    size_t i              = p->label_list.length;
     struct token *current = parser_current(p);
-    strncpy(p->label_list.labels[p->label_list.length].name, current->value,
+    strncpy(p->label_list.resolved[i].name, current->value,
             strlen(current->value) - 1);
     if (current->section == DATA_SECTION) {
-        p->label_list.labels[p->label_list.length].offset =
-            p->label_list.base_offset;
+        p->label_list.resolved[i].offset = p->label_list.base_offset;
     } else {
-        p->label_list.labels[p->label_list.length].offset = p->current_address;
+        p->label_list.resolved[i].offset = p->current_address;
     }
     p->label_list.length++;
 }
 
 static void parser_append_unresolved_label(struct parser *p, size_t index)
 {
-    size_t i        = p->label_list.unresolved_labels_len;
+    size_t i        = p->label_list.unresolved_length;
     struct token *t = parser_current(p);
-    strncpy(p->label_list.unresolved_labels[i].name, t->value,
-            strlen(t->value) + 1);
-    p->label_list.unresolved_labels[i].offset = index;
-    p->label_list.unresolved_labels_len++;
+    strncpy(p->label_list.unresolved[i].name, t->value, strlen(t->value) + 1);
+    p->label_list.unresolved[i].offset = index;
+    p->label_list.unresolved_length++;
 }
 
 // - 1 byte (half-word)
@@ -90,9 +89,10 @@ static void parser_reserve_space(struct parser *p, Byte_Code *bc, size_t bytes)
 
 static int64_t parser_label_table_find(struct parser *p, const char *value)
 {
+    size_t len = strlen(value);
     for (size_t i = 0; i < p->label_list.length; ++i) {
-        if (strncmp(value, p->label_list.labels[i].name, strlen(value)) == 0) {
-            return p->label_list.labels[i].offset;
+        if (strncmp(value, p->label_list.resolved[i].name, len) == 0) {
+            return p->label_list.resolved[i].offset;
         }
     }
     return -1;
@@ -219,17 +219,17 @@ static int64_t parser_parse_hex(const char *value)
 
 void parser_init(struct parser *p, const struct token_list *tokens)
 {
-    p->lines                            = 0;
-    p->tokens                           = tokens;
-    p->current                          = &tokens->data[0];
+    p->lines                        = 0;
+    p->tokens                       = tokens;
+    p->current                      = &tokens->data[0];
     // Basically the line number, this will be updated each time a NEWLINE token
     // is consumed
-    p->current_address                  = 0;
-    p->current_directive                = D_DB;
-    p->label_list.length                = 0;
-    p->label_list.base_offset           = DATA_OFFSET;
-    p->label_list.unresolved_labels_len = 0;
-    size_t capacity                     = 4;
+    p->current_address              = 0;
+    p->current_directive            = D_DB;
+    p->label_list.length            = 0;
+    p->label_list.base_offset       = DATA_OFFSET;
+    p->label_list.unresolved_length = 0;
+    size_t capacity                 = 4;
     da_init(&p->instructions, capacity);
 }
 
@@ -470,17 +470,17 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
     }
 
     // 2nd pass for unresolved label addresses
-    for (size_t i = 0; i < p->label_list.unresolved_labels_len; ++i) {
+    for (size_t i = 0; i < p->label_list.unresolved_length; ++i) {
         int64_t addr =
-            parser_label_table_find(p, p->label_list.unresolved_labels[i].name);
+            parser_label_table_find(p, p->label_list.unresolved[i].name);
         if (addr < 0) {
             fprintf(stderr, "label %s not found\n",
-                    p->label_list.unresolved_labels[i].name);
+                    p->label_list.unresolved[i].name);
             return -1;
         }
 
         struct instruction_line *instr =
-            &p->instructions.data[p->label_list.unresolved_labels[i].offset];
+            &p->instructions.data[p->label_list.unresolved[i].offset];
 
         if (instr->dst == -1)
             instr->dst = addr;

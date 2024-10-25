@@ -36,13 +36,13 @@ struct parser {
     // Struct for managing label information during parsing
     struct {
         // Array of labels defined in the source
-        struct labels_s labels[LABELS_TOTAL];
+        struct labels_s resolved[LABELS_TOTAL];
         // Number of labels defined
         size_t length;
         // Array of unresolved labels
-        struct labels_s unresolved_labels[LABELS_TOTAL];
+        struct labels_s unresolved[LABELS_TOTAL];
         // Number of unresolvd labels
-        size_t unresolved_labels_len;
+        size_t unresolved_length;
         // Base offset to apply when resolving label addresses
         size_t base_offset;
     } label_list;

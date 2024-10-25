@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define DEST_MASK   0x7FFFFFF
-#define ADDR_MASK   0x3FFFFFF
+#define SRC_MASK    0x3FFFFFF
+#define DST_MASK    0x3FFFFFF
 #define DATA_OFFSET (2 << 12) // 8K
 
 typedef uint8_t hword;
@@ -15,6 +15,8 @@ typedef enum {
     IS_SRC_REG     = 0x1,  // Source is a register
     IS_SRC_MEM     = 0x2,  // Source is memory
     IS_SRC_IMM     = 0x4,  // Source is an immediate value
+    IS_SRC_IREG    = 0x8,  // Source is an indirect register (memory address as
+                           // register value)
     IS_DST_REG     = 0x10, // Destination is a register
     IS_DST_MEM     = 0x20, // Destination is memory
     // Combination semantics
@@ -25,6 +27,13 @@ typedef enum {
     IS_SEM_IMM_MEM = IS_SRC_IMM | IS_DST_MEM, // Immediate to Memory
 } Instr_Semantic;
 
+// Represents an instruction such e.g.
+//   MOV ax, [cx] ; Copy inderct regitry cx into ax
+//
+//   - op:  OP code of the instruction
+//   - sem: Semanthic of the instruction
+//   - src: Source operand (register / memory / immediate value)
+//   - dst: Destination operand (register / memory)
 struct instruction_line {
     hword op;
     Instr_Semantic sem;
@@ -35,6 +44,8 @@ struct instruction_line {
 qword data_encode_instruction(const struct instruction_line *instruction);
 struct instruction_line data_decode_instruction(qword e_instr);
 void data_reset_instruction(struct instruction_line *instruction);
+
+// Dynamic array helpers
 
 #define da_init(da, capacity)                                                  \
     do {                                                                       \
@@ -50,7 +61,6 @@ void data_reset_instruction(struct instruction_line *instruction);
         (da)->data =                                                           \
             realloc((da)->data, (da)->capacity * sizeof(*(da)->data));         \
         if (!(da)->data) {                                                     \
-            free((da));                                                        \
             fprintf(stderr, "DA realloc failed");                              \
             exit(EXIT_FAILURE);                                                \
         }                                                                      \

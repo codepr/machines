@@ -27,7 +27,7 @@ VM *vm_create(const Byte_Code *bc, size_t memory_size);
 
 void vm_free(VM *vm);
 
-void vm_reset(VM *vm, qword *code, hword *data, size_t len);
+void vm_reset(VM *vm, qword *code, hword *data, size_t len, size_t memory_size);
 
 Exec_Result vm_run(VM *vm);
 

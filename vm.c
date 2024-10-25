@@ -6,7 +6,7 @@
 static void clear_flags(VM *vm);
 
 static void reset(VM *vm, qword *code_segment, hword *data_segment,
-                  size_t data_len)
+                  size_t data_len, size_t memory_size)
 {
     memset(vm->r, 0x00, NUM_REGISTERS * sizeof(*vm->r));
     memset(vm->stack, 0x00, STACK_SIZE * sizeof(*vm->stack));
@@ -19,7 +19,7 @@ static void reset(VM *vm, qword *code_segment, hword *data_segment,
     if (!data_segment)
         return;
 
-    memset(vm->memory, 0x00, 32768);
+    memset(vm->memory, 0x00, memory_size * sizeof(qword));
     // Addressing
     for (size_t i = DATA_OFFSET; i < DATA_OFFSET * 2; ++i)
         vm->memory[i] = i + DATA_OFFSET;
@@ -80,9 +80,10 @@ static uint64_t sign_extend(qword x, int bit_count)
 static int set_operands(VM *vm, const struct instruction_line *i, qword *src,
                         qword **dst)
 {
-    *src = (i->sem & IS_SRC_REG)   ? vm->r[i->src]
-           : (i->sem & IS_SRC_MEM) ? vm->memory[i->src]
-                                   : sign_extend(i->src, 27);
+    *src = (i->sem & IS_SRC_REG)    ? vm->r[i->src]
+           : (i->sem & IS_SRC_MEM)  ? vm->memory[i->src]
+           : (i->sem & IS_SRC_IREG) ? vm->memory[vm->r[i->src]]
+                                    : sign_extend(i->src, 27);
 
     if (i->sem & IS_DST_REG) {
         *dst = &vm->r[i->dst];
@@ -312,7 +313,7 @@ VM *vm_create(const Byte_Code *bc, size_t memory_size)
         return NULL;
     }
 
-    reset(vm, bc_code(bc), bc_data(bc), bc_data_addr(bc));
+    reset(vm, bc_code(bc), bc_data(bc), bc_data_addr(bc), memory_size);
 
     return vm;
 }
@@ -323,9 +324,10 @@ void vm_free(VM *vm)
     free(vm);
 }
 
-void vm_reset(VM *vm, qword *code, hword *data, size_t data_len)
+void vm_reset(VM *vm, qword *code, hword *data, size_t data_len,
+              size_t memory_size)
 {
-    reset(vm, code, data, data_len);
+    reset(vm, code, data, data_len, memory_size);
 }
 
 Exec_Result vm_run(VM *vm)

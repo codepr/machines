@@ -11,6 +11,13 @@ typedef struct bytecode Byte_Code;
 #define LABELSIZE    64
 #define LABELS_TOTAL 128
 
+struct labels_s {
+    // Name of the label (symbolic reference)
+    char name[LABELSIZE];
+    // Bytecode offset or memory address for the label
+    size_t offset;
+};
+
 // Struct representing the parser for source code, which processes a list of
 // tokens and maintains state such as current token, current address, and label
 // information.
@@ -29,17 +36,24 @@ struct parser {
     // Struct for managing label information during parsing
     struct {
         // Array of labels defined in the source
-        struct {
-            // Name of the label (symbolic reference)
-            char name[LABELSIZE];
-            // Bytecode offset or memory address for the label
-            uint64_t offset;
-        } labels[LABELS_TOTAL];
+        struct labels_s labels[LABELS_TOTAL];
         // Number of labels defined
         size_t length;
+        // Array of unresolved labels
+        struct labels_s unresolved_labels[LABELS_TOTAL];
+        // Number of unresolvd labels
+        size_t unresolved_labels_len;
         // Base offset to apply when resolving label addresses
         size_t base_offset;
     } label_list;
+
+    // Struct to keep track of the instructions parsed, represents
+    // a middle stage before being encoded into the final bytecode
+    struct {
+        struct instruction_line *data;
+        size_t length;
+        size_t capacity;
+    } instructions;
 };
 
 /**

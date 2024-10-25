@@ -28,7 +28,7 @@ typedef enum {
 struct instruction_line {
     hword op;
     Instr_Semantic sem;
-    qword src, dst;
+    int64_t src, dst;
 };
 
 // TODO: Dispatch the correct encoding based on opcode

@@ -14,7 +14,7 @@ qword data_encode_instruction(const struct instruction_line *i)
     encoded |= ((qword)(i->src & ADDR_MASK) << 27);
 
     // Encode the 27-bit destination operand (dst)
-    encoded |= (i->dst & DEST_MASK);
+    encoded |= ((qword)i->dst & DEST_MASK);
 
     return encoded;
 }

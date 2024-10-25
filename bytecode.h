@@ -72,7 +72,9 @@ typedef enum {
 
 // Enum representing the general-purpose registers available in the virtual
 // machine.
-typedef enum { AX, BX, CX, DX, NUM_REGISTERS } Register;
+typedef enum { R_AX, R_BX, R_CX, R_DX, NUM_REGISTERS } Register;
+
+typedef enum { D_DB, D_DW, D_DD, D_DQ, NUM_DIRECTIVES } Directive;
 
 Byte_Code *bc_create(void);
 
@@ -103,6 +105,8 @@ qword bc_data_addr(const Byte_Code *const bc);
 qword bc_encode_instruction(struct instruction_line *i);
 
 struct instruction_line bc_decode_instruction(qword einstr);
+
+void bc_push_instruction(Byte_Code *bc, struct instruction_line *i);
 
 void bc_free(Byte_Code *bc);
 

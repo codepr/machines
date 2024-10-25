@@ -1,5 +1,4 @@
 #include "parser.h"
-#include "bytecode.h"
 #include "data.h"
 #include "lexer.h"
 #include <assert.h>
@@ -41,8 +40,14 @@ static void parser_append_label(struct parser *p, const char *value,
     p->label_list.length++;
 }
 
-static int parser_append_string(Byte_Code *bc, const char *data,
-                                size_t data_len)
+// - 1 byte (half-word)
+// - 2 bytes (word)
+// - 4 bytes (double-word)
+// - 8 bytes (quad-word)
+static size_t directive_multiplier[] = {1, 2, 4, 8};
+
+static void parser_append_string(struct parser *p, Byte_Code *bc,
+                                 const char *data, size_t data_len)
 {
     // Skip delimiter
     if (*data == '"')
@@ -58,17 +63,18 @@ static int parser_append_string(Byte_Code *bc, const char *data,
     }
     bc->data_segment->data[bc->data_segment->length++] = '\0';
 
-    return data_len;
+    p->label_list.base_offset += data_len;
 }
 
-static int parser_reserve_space(Byte_Code *bc, size_t bytes)
+static void parser_reserve_space(struct parser *p, Byte_Code *bc, size_t bytes)
 {
+    bytes *= directive_multiplier[p->current_directive];
     // Reserve bytes space in the data segment
     while (bc->data_segment->length + bytes >= bc->data_segment->capacity)
         da_extend(bc->data_segment);
     bc->data_segment->length += bytes;
 
-    return bytes;
+    p->label_list.base_offset += bytes;
 }
 
 // An hashmap would be helpful here, the list of instructions is still pretty
@@ -143,13 +149,27 @@ static Instruction_Set parse_instruction(const char *str)
 static int64_t parse_register(const char *value)
 {
     if (strncasecmp(value, "AX", 2) == 0)
-        return AX;
+        return R_AX;
     else if (strncasecmp(value, "BX", 2) == 0)
-        return BX;
+        return R_BX;
     else if (strncasecmp(value, "CX", 2) == 0)
-        return CX;
+        return R_CX;
     else if (strncasecmp(value, "DX", 2) == 0)
-        return DX;
+        return R_DX;
+    return -1;
+}
+
+static Directive parse_directive(const char *value)
+{
+    if (strncasecmp(value, "DB", 2) == 0)
+        return D_DB;
+    else if (strncasecmp(value, "DW", 2) == 0)
+        return D_DW;
+    else if (strncasecmp(value, "DD", 2) == 0)
+        return D_DD;
+    else if (strncasecmp(value, "DQ", 2) == 0)
+        return D_DQ;
+
     return -1;
 }
 
@@ -193,6 +213,7 @@ void parser_init(struct parser *p, const struct token_list *tokens)
     // Basically the line number, this will be updated each time a NEWLINE token
     // is consumed
     p->current_address        = 0;
+    p->current_directive      = D_DB;
     p->label_list.length      = 0;
     p->label_list.base_offset = DATA_OFFSET;
 }
@@ -236,8 +257,7 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
 
             if (parser_expect(p, TOKEN_COMMENT) ||
                 parser_expect(p, TOKEN_NEWLINE)) {
-                da_push(bc->code_segment,
-                        bc_encode_instruction(&last_instruction));
+                bc_push_instruction(bc, &last_instruction);
                 p->current_address++;
                 data_reset_instruction(&last_instruction);
             }
@@ -265,8 +285,7 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
                 if (parser_expect(p, TOKEN_COMMENT) ||
                     parser_expect(p, TOKEN_NEWLINE)) {
                     last_instruction.sem = IS_DST_REG;
-                    da_push(bc->code_segment,
-                            bc_encode_instruction(&last_instruction));
+                    bc_push_instruction(bc, &last_instruction);
                     p->current_address++;
                     data_reset_instruction(&last_instruction);
                 }
@@ -285,8 +304,7 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
                       parser_expect(p, TOKEN_NEWLINE))) {
                     goto panic;
                 }
-                da_push(bc->code_segment,
-                        bc_encode_instruction(&last_instruction));
+                bc_push_instruction(bc, &last_instruction);
                 p->current_address++;
                 data_reset_instruction(&last_instruction);
             }
@@ -305,8 +323,7 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
                 goto panic;
             size_t len = atoll(next->value);
             // TODO check for nul
-            p->label_list.base_offset +=
-                parser_append_string(bc, current->value, len);
+            parser_append_string(p, bc, current->value, len);
             if (!(parser_expect(p, TOKEN_COMMENT) ||
                   parser_expect(p, TOKEN_NEWLINE))) {
                 goto panic;
@@ -317,7 +334,7 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
                 qword constant = (strncmp(current->value, "0x", 2) == 0)
                                      ? parser_parse_hex(current->value)
                                      : atoll(current->value);
-                p->label_list.base_offset += parser_reserve_space(bc, constant);
+                parser_reserve_space(p, bc, constant);
                 if (!(parser_expect(p, TOKEN_NEWLINE) ||
                       parser_expect(p, TOKEN_COMMA) ||
                       parser_expect(p, TOKEN_COMMENT))) {
@@ -335,8 +352,7 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
                                            ? parser_parse_hex(current->value)
                                            : atoll(current->value);
 
-                da_push(bc->code_segment,
-                        bc_encode_instruction(&last_instruction));
+                bc_push_instruction(bc, &last_instruction);
                 p->current_address++;
                 data_reset_instruction(&last_instruction);
             }
@@ -360,8 +376,7 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
                     else
                         last_instruction.src = p->label_list.labels[i].offset;
 
-                    da_push(bc->code_segment,
-                            bc_encode_instruction(&last_instruction));
+                    bc_push_instruction(bc, &last_instruction);
                     p->current_address++;
                     data_reset_instruction(&last_instruction);
                     break;
@@ -371,6 +386,7 @@ int parser_parse_source(struct parser *p, Byte_Code *bc)
         case TOKEN_SECTION:
             break;
         case TOKEN_DIRECTIVE:
+            p->current_directive = parse_directive(current->value);
             break;
         case TOKEN_COMMA:
             if (parser_expect(p, TOKEN_REGISTER))

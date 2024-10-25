@@ -272,20 +272,20 @@ static Exec_Result execute(VM *vm, struct instruction_line *instr)
         break;
     }
     case OP_SYSCALL: {
-        switch (vm->r[BX]) {
+        switch (vm->r[R_BX]) {
         // STDIN
         case 0:
-            syscall_read(vm->r[BX], &vm->memory[vm->r[CX]],
-                         vm->r[DX] * sizeof(qword));
+            syscall_read(vm->r[R_BX], &vm->memory[vm->r[R_CX]],
+                         vm->r[R_DX] * sizeof(qword));
             break;
         // STDOUT
         case 1:
-            syscall_write(vm->r[BX], &vm->memory[vm->r[CX]],
-                          vm->r[DX] * sizeof(qword));
+            syscall_write(vm->r[R_BX], &vm->memory[vm->r[R_CX]],
+                          vm->r[R_DX] * sizeof(qword));
             fflush(stdout);
             break;
         case 64:
-            vm->r[AX] = syscall_atoi(&vm->memory[vm->r[CX]]);
+            vm->r[R_AX] = syscall_atoi(&vm->memory[vm->r[R_CX]]);
             break;
         }
         break;
@@ -345,6 +345,6 @@ void vm_print_registers(const VM *const vm)
 {
     printf("AX: %lli BX: %lli CX: %lli DX: %lli FL_ZRO: %i FL_NEG: %i FL_POS: "
            "%i\n",
-           vm->r[AX], vm->r[BX], vm->r[CX], vm->r[DX], vm->flags[FL_ZRO],
-           vm->flags[FL_NEG], vm->flags[FL_POS]);
+           vm->r[R_AX], vm->r[R_BX], vm->r[R_CX], vm->r[R_DX],
+           vm->flags[FL_ZRO], vm->flags[FL_NEG], vm->flags[FL_POS]);
 }

@@ -58,6 +58,11 @@ struct instruction_line bc_decode_instruction(qword e_instr)
     return data_decode_instruction(e_instr);
 }
 
+void bc_push_instruction(Byte_Code *bc, struct instruction_line *i)
+{
+    da_push(bc->code_segment, bc_encode_instruction(i));
+}
+
 qword *bc_code(const Byte_Code *const bc)
 {
     if (!bc)

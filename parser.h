@@ -1,6 +1,7 @@
 #ifndef PARSER_H
 #define PARSER_H
 
+#include "bytecode.h"
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -20,6 +21,8 @@ struct parser {
     struct token *current;
     // Current address in the bytecode or source being parsed
     size_t current_address;
+    // Current directive in the bytecode when parsing DATA SECTION
+    Directive current_directive;
     // Number of lines parsed (used for error reporting or tracking)
     size_t lines;
 

@@ -80,6 +80,6 @@ void parser_init(struct parser *p, const struct token_list *tokens);
  * will be stored.
  * @return Returns 0 on success, non-zero on error.
  */
-int parser_parse_source(struct parser *p, Byte_Code *code);
+int parser_run(struct parser *p, Byte_Code *code);
 
 #endif

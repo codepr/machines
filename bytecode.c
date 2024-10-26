@@ -241,7 +241,7 @@ Byte_Code *bc_from_source(const char *source)
 
     struct parser p;
     parser_init(&p, &tl);
-    int err = parser_parse_source(&p, bc);
+    int err = parser_run(&p, bc);
     if (err < 0)
         goto panic;
 
@@ -310,7 +310,7 @@ Byte_Code *bc_slurp(const char *path)
 
     struct parser p;
     parser_init(&p, &tl);
-    int err = parser_parse_source(&p, bc);
+    int err = parser_run(&p, bc);
     if (err < 0)
         goto panic;
 
@@ -351,7 +351,7 @@ Byte_Code *bc_load(const char *path)
 
     struct parser p;
     parser_init(&p, &tl);
-    int err = parser_parse_source(&p, bc);
+    int err = parser_run(&p, bc);
     if (err < 0)
         goto panic;
 

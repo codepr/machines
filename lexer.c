@@ -70,7 +70,7 @@ static inline char lexer_next_char(struct lexer *l)
 #define is_section(token) ((token)[0] == SECTION_START)
 #define is_comment(token) ((token)[0] == COMMENT_START)
 
-int is_instruction(const char *token)
+static int is_instruction(const char *token)
 {
     for (int i = 0; instructions[i] != NULL; ++i) {
         if (strncasecmp(token, instructions[i], strlen(token)) == 0) {

@@ -45,6 +45,7 @@ static void clear_flags(VM *vm)
     vm->flags[FL_POS] = 0;
 }
 
+// TODO consider using a single register with multiple FL_* enum values
 static void set_flags(VM *vm, qword v, int type)
 {
     clear_flags(vm);

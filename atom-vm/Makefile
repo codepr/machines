@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-Wall -Werror -pedantic -ggdb -std=c11 -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -pg
 
-SRC = src/main.c src/vm.c src/bytecode.c
+SRC = src/vm.c src/bytecode.c
 OBJ = $(SRC:.c=.o)
 EXEC = atom-vm
 

@@ -17,6 +17,8 @@
 tags
 build
 bin
+pluto-vm/pluto-vm
+atom-vm/atom-vm
 pluto-vm-tests
 atom-vm-tests
 tests

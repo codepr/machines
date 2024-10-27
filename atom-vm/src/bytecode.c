@@ -234,7 +234,7 @@ void bc_disassemble(const Byte_Code *bc) {
     if (bc->labels->length > 0) {
         printf("%s", bc->labels->labels[0]);
         while (i < bc->data->length) {
-            printf("\t@%lu %lu\n", i, bc->data->code[i]);
+            printf("\t@%lu %llu\n", i, bc->data->code[i]);
             i++;
         }
         printf("\n");
@@ -247,7 +247,7 @@ void bc_disassemble(const Byte_Code *bc) {
         if (instr_defs[bc->code->code[i]].has_arg) {
             if (bc->code->code[i] == OP_PUSH)
                 printf(" @");
-            printf("%lu", bc->code->code[++i]);
+            printf("%llu", bc->code->code[++i]);
         }
         printf("\n");
         i++;
@@ -285,7 +285,7 @@ Byte_Code *bc_load(const char *path) {
         return NULL;
 
     char line[0xfff], instr_offset[8], instr[16], arg[8];
-    size_t line_nr = 0;
+    // size_t line_nr = 0;
     char *line_ptr;
     Assembly_Step state;
 
@@ -295,7 +295,7 @@ Byte_Code *bc_load(const char *path) {
         memset(instr, 0x00, 16);
         memset(instr_offset, 0x00, 8);
 
-        line_nr++;
+        // line_nr++;
 
         // Strip whitespaces if any before the line
         line_ptr = line;

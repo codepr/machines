@@ -47,10 +47,10 @@ static void vm_reset(Word *bytecode) {
 #define vm_tos() (vm.stack_top - 1)
 #define vm_peek() (*(vm.stack_top - 1))
 
-// static void vm_print_stack() {
+// static void vm_print_stack(void) {
 //     printf("=======");
 //     for (int i = 0; i < STACK_SIZE; ++i) {
-//         printf("%lu\n", vm.stack[i]);
+//         printf("%llu\n", vm.stack[i]);
 //     }
 // }
 
@@ -115,6 +115,7 @@ Interpret_Result vm_interpret(Byte_Code *bc) {
         }
         case OP_SUB: {
             uint64_t right = vm_pop();
+            printf("%lld -  %lld \n", *vm_tos(), right);
             *vm_tos() -= right;
             pc++;
             break;
@@ -173,7 +174,7 @@ Interpret_Result vm_interpret(Byte_Code *bc) {
             break;
 
         case OP_PRINT: {
-            printf("%llu\n", vm_pop());
+            printf("%lli\n", vm_pop());
             pc++;
             break;
         }
@@ -202,7 +203,7 @@ int main(void) {
 
     vm_init();
 
-    Byte_Code *bc = bc_load("examples/func.ox");
+    Byte_Code *bc = bc_load("examples/test.atom");
     if (!bc)
         abort();
 
@@ -210,6 +211,8 @@ int main(void) {
 
     if (vm_interpret(bc) < 0)
         abort();
+
+    // vm_print_stack();
 
     bc_free(bc);
 

@@ -497,6 +497,9 @@ int parser_run(struct parser *p, Byte_Code *bc)
 
             break;
         case TOKEN_SECTION:
+            if (strncasecmp(current->value, ".start", strlen(current->value)) ==
+                0)
+                bc->entrypoint = p->lines;
             break;
         case TOKEN_DIRECTIVE:
             p->current_directive = parse_directive(current->value);

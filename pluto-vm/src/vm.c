@@ -315,6 +315,7 @@ VM *vm_create(const Byte_Code *bc, size_t memory_size)
     }
 
     reset(vm, bc_code(bc), bc_data(bc), bc_data_addr(bc), memory_size);
+    vm->pc = bc->entrypoint;
 
     return vm;
 }

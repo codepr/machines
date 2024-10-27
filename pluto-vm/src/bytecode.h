@@ -32,6 +32,8 @@ typedef struct bytecode {
     Data_Segment *data_segment;
     // Base address for the data segment in memory
     qword data_addr;
+    // Main entry point address
+    qword entrypoint;
 } Byte_Code;
 
 // Enum representing the instruction set for the virtual machine or processor.

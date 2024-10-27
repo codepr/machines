@@ -198,9 +198,7 @@ int lexer_tokenize(struct lexer *l, struct token_list *tokens)
     Token_Type prev = TOKEN_UNKNOWN;
     Section section = DATA_SECTION;
     while (lexer_next(l, &t, prev) != EOF) {
-        if (strncasecmp(t.value, ".data", 5) == 0)
-            section = DATA_SECTION;
-        if (strncasecmp(t.value, ".main", 5) == 0)
+        if (section != MAIN_SECTION && strncasecmp(t.value, ".main", 5) == 0)
             section = MAIN_SECTION;
         t.section = section;
         da_push(tokens, t);
@@ -224,9 +222,8 @@ int lexer_tokenize_stream(FILE *fp, struct lexer *l, struct token_list *tokens)
     while (fgets(line, 0xFFF, fp)) {
         lexer_init(l, line, strlen(line));
         while (lexer_next(l, &t, prev) != EOF) {
-            if (strncasecmp(t.value, ".data", 5) == 0)
-                section = DATA_SECTION;
-            if (strncasecmp(t.value, ".main", 5) == 0)
+            if (section != MAIN_SECTION &&
+                strncasecmp(t.value, ".main", 5) == 0)
                 section = MAIN_SECTION;
             t.section = section;
             da_push(tokens, t);

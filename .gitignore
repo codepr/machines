@@ -17,5 +17,6 @@
 tags
 build
 bin
-T800-64
+pluto-vm-tests
+atom-vm-tests
 tests

@@ -1,0 +1,39 @@
+# Fib(64)
+.data
+    @0000 64
+
+.main
+    # start with 0 and 1, store them in memory
+    0000 PUSHI   0
+    0002 STOREI 0001
+    0004 PUSHI   1
+    0006 STOREI 0002
+
+    # introduce a counter, init at 0
+    0008 PUSHI   0
+    0010 STOREI 0000
+
+    # read from memory the previous 2 values
+    0012 LOADI  0001
+    0014 LOADI  0002
+    0016 DUP
+    0017 STOREI 0001
+    0019 ADD
+    0020 STOREI 0002
+
+    # load the counter and increment it by 1
+    0022 LOADI  0000
+    0024 INC
+    0025 DUP
+    0026 PUSH   @0000
+
+    # counter eq to limit?
+    0028 EQ
+
+    # jump if not equal to limit, to the store to memory label
+    0029 JNE    0010
+
+    # loop is over, read the final result from memory
+    0031 LOADI  0002
+    0033 PRINT
+    0034 HALT

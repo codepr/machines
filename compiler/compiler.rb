@@ -183,7 +183,7 @@ class Parser
   def parse
     src = []
     while @position < @tokens.length
-      src << parse_expression
+      src << parse_sexpr
     end
     ASTNode.new(@source_name, src)
   end
@@ -198,7 +198,7 @@ class Parser
     @position += 1
   end
 
-  def parse_expression
+  def parse_sexpr
     case current_token.type
     when :def
       parse_def
@@ -210,17 +210,17 @@ class Parser
       parse_integer
     when :lparen
       advance
-      expr = parse_expression
+      expr = parse_sexpr
       if current_token && current_token.type == :rparen
         advance # consume ')'
       end
       expr
     when :rparen
       advance
-      parse_expression
+      parse_sexpr
     when :newline
       advance
-      parse_expression
+      parse_sexpr
     when :eof
       advance
       EOFNode.new("eof")
@@ -234,7 +234,7 @@ class Parser
     identifier = parse_identifier
     body = []
     while current_token && current_token.type != :rparen && current_token.type != :eof
-      body << parse_expression
+      body << parse_sexpr
     end
     advance unless current_token.nil? # consume ')'
     DefNode.new(identifier.name, body)
@@ -245,7 +245,7 @@ class Parser
     advance
     operands = []
     while current_token.type != :rparen && current_token.type != :eof
-      operands << parse_expression
+      operands << parse_sexpr
     end
     OperatorNode.new(operator, operands)
   end
@@ -307,6 +307,9 @@ class Compiler
 
   def generate_operator_asm(node)
     asm = node.operands.map { |operand| run(operand) }
+    # Order of the operands matters when they're non-commutative, e.g. 5 - 10 != 10 - 5
+    # also S-exp are really a cumulative application of the operator to a possibly infinite
+    # number of operands and each operand can be a nested S-exp.
     if node.commutative?
       (node.operands.length - 1).times do | _|
         asm << "    %04d #{node.asm_operator}" % @pc
@@ -320,11 +323,10 @@ class Compiler
         @pc += 1
       end
 
-      asm << "    %04d SUB" % @pc
+      asm << "    %04d #{node.asm_operator}" % @pc
       @pc += 1
 
     end
-    @pc += 1
     asm
   end
 

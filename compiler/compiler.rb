@@ -331,7 +331,7 @@ class Compiler
   end
 
   def generate_integer_asm(node)
-    asm = "    %04d PUSHI #{node.value}" % @pc
+    asm = "    %04d PUSH_IMM #{node.value}" % @pc
     @pc += 2
     asm
   end

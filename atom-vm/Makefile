@@ -1,13 +1,20 @@
 CC=gcc
 CFLAGS=-Wall -Werror -pedantic -ggdb -std=c11 -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -pg
 
-SRC = src/vm.c src/bytecode.c
+SRC = src/vm.c src/bytecode.c src/assembler.c
 OBJ = $(SRC:.c=.o)
 EXEC = atom-vm
 
-all: $(EXEC)
+ASM_SRC = src/aasm.c src/bytecode.c src/assembler.c
+ASM_OBJ = $(ASM_SRC:.c=.o)
+ASM_EXEC = aasm
+
+all: $(EXEC) $(ASM_EXEC)
 
 $(EXEC): $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $^
+
+$(ASM_EXEC): $(ASM_OBJ)
 	$(CC) $(CFLAGS) -o $@ $^
 
 %.o: %.c
@@ -15,5 +22,6 @@ $(EXEC): $(OBJ)
 
 clean:
 	rm -f $(OBJ) $(EXEC)
+	rm -f $(ASM_OBJ) ($(ASM_EXEC)
 
 .PHONY: all clean

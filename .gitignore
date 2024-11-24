@@ -22,3 +22,7 @@ atom-vm/atom-vm
 pluto-vm-tests
 atom-vm-tests
 tests
+aasm
+*.S
+atom-vm/aasm
+atom-vm/*.S

@@ -1,39 +1,49 @@
 # Fib(64)
 .data
-    @0000 64
+    @1024 64
+    @2064 "Computation complete: "
 
 .main
     # start with 0 and 1, store them in memory
-    0000 PUSHI   0
-    0002 STOREI 0001
-    0004 PUSHI   1
-    0006 STOREI 0002
+    0000 PUSH_IMM  0
+    0002 STORE_IMM 0001
+    0004 PUSH_IMM  1
+    0006 STORE_IMM 0002
 
     # introduce a counter, init at 0
-    0008 PUSHI   0
-    0010 STOREI 0000
+    0008 PUSH_IMM  0
+    0010 STORE_IMM 0000
 
     # read from memory the previous 2 values
-    0012 LOADI  0001
-    0014 LOADI  0002
+    0012 LOAD_IMM  0001
+    0014 LOAD_IMM  0002
     0016 DUP
-    0017 STOREI 0001
+    0017 STORE_IMM 0001
     0019 ADD
-    0020 STOREI 0002
+    0020 STORE_IMM 0002
 
     # load the counter and increment it by 1
-    0022 LOADI  0000
+    0022 LOAD_IMM  0000
     0024 INC
     0025 DUP
-    0026 PUSH   @0000
+    0026 PUSH      @1024
 
     # counter eq to limit?
     0028 EQ
 
     # jump if not equal to limit, to the store to memory label
-    0029 JNE    0010
+    0029 JNE       0010
+
+    # print the end of the computation
+    0031 CALL      0037
 
     # loop is over, read the final result from memory
-    0031 LOADI  0002
-    0033 PRINT
-    0034 HALT
+    0033 LOAD_IMM  0002
+    0035 PRINT_IMM
+    0036 HALT
+
+    # fuction definition
+    0037 PUSH      @2064
+    0039 PRINT
+    0040 RET
+

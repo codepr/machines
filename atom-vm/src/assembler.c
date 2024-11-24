@@ -395,6 +395,27 @@ static Instruction_ID parse_instruction(const char *str)
     return -1;
 }
 
+uint64_t parse_constant(const char *value)
+{
+    char *endptr;
+    // To distinguish success/failure after call
+    errno = 0;
+    uint64_t val;
+
+    if (strncmp(value, "0x", 2) == 0)
+        val = strtol(value, &endptr, 16);
+    else
+        val = strtol(value, &endptr, 10);
+
+    // Check for various possible errors.
+    if (errno != 0)
+        parser_panic("error parsing constant: %s\n", strerror(errno));
+
+    if (endptr == value)
+        parser_panic("no digits were found\n", strerror(errno));
+
+    return val;
+}
 /*
  * MAIN EXPOSED FUNCTION
  */
@@ -433,7 +454,7 @@ static Byte_Code *parser_run(struct parser *p)
         switch (curr->type) {
         case TOKEN_ADDRESS:
             if (curr->section == DATA_SECTION) {
-                Data_Record record = {.address = atoll(curr->value)};
+                Data_Record record = {.address = parse_constant(curr->value)};
                 curr               = parser_next(p);
                 if (curr->type == TOKEN_STRING) {
                     if (record.address < DATA_STRING_OFFSET) {
@@ -454,7 +475,7 @@ static Byte_Code *parser_run(struct parser *p)
                             DATA_OFFSET, record.address, p->lines);
                     }
                     record.type   = DT_CONSTANT;
-                    record.as_int = atoll(curr->value);
+                    record.as_int = parse_constant(curr->value);
                 } else {
                     bc_free(bc);
                     parser_panic(
@@ -477,7 +498,7 @@ static Byte_Code *parser_run(struct parser *p)
             if (parser_expect(p, TOKEN_CONSTANT) ||
                 parser_expect(p, TOKEN_ADDRESS)) {
                 curr = parser_next(p);
-                da_push(bc->code_segment, atoll(curr->value));
+                da_push(bc->code_segment, parse_constant(curr->value));
             }
             break;
         }
@@ -518,10 +539,24 @@ void asm_disassemble(const Byte_Code *bc)
         printf("\t%04li %-9s", i,
                instructions_table[bc->code_segment->data[i]]);
         if (bc_nary_instruction(bc->code_segment->data[i])) {
-            if (bc->code_segment->data[i] == OP_PUSH)
+            switch (bc->code_segment->data[i]) {
+            case OP_PUSH:
                 printf(" @%04llu", bc->code_segment->data[++i]);
-            else
+                break;
+            case OP_CALL:
+                printf(" (%04llu)", bc->code_segment->data[++i]);
+                break;
+            case OP_JMP:
+            case OP_JNE:
+            case OP_JEQ:
+            case OP_LOAD_IMM:
+            case OP_STORE_IMM:
+                printf(" [%04llu]", bc->code_segment->data[++i]);
+                break;
+            default:
                 printf(" %04llu", bc->code_segment->data[++i]);
+                break;
+            }
         }
         printf("\n");
         i++;

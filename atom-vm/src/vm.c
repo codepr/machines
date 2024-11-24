@@ -215,6 +215,15 @@ Interpret_Result vm_interpret(Byte_Code *bc)
                 vm.ip = bytecode + pc;
             }
             break;
+        case OP_MAKE_TUPLE: {
+            Word address    = vm_next();
+            Word tuple_size = vm_pop();
+            while (tuple_size-- > 0) {
+                vm.memory[address++] = vm_pop();
+            }
+            pc += 2;
+            break;
+        }
         case OP_PRINT: {
             Word address = vm_pop();
             if (string_pointer(address)) {
@@ -259,7 +268,7 @@ int main(void)
 
     vm_init();
 
-    Byte_Code *bc = asm_compile("examples/fib.atom", 1);
+    Byte_Code *bc = asm_compile("examples/tuple.atom", 1);
     if (!bc)
         abort();
 

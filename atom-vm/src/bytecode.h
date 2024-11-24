@@ -59,6 +59,7 @@ typedef enum {
     OP_JMP,
     OP_JEQ,
     OP_JNE,
+    OP_MAKE_TUPLE,
     OP_PRINT,
     OP_PRINT_CONST,
     OP_RET,

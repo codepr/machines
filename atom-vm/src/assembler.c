@@ -39,10 +39,10 @@ typedef enum { DATA_SECTION, MAIN_SECTION } Section;
 //  These static maps are used to determine the token types during the lexical
 //  analysis of the source code
 const char *const instructions_table[] = {
-    "LOAD",        "LOAD_CONST", "STORE", "STORE_CONST", "CALL", "PUSH",
-    "PUSH_CONST",  "ADD",        "SUB",   "MUL",         "DIV",  "DUP",
-    "INC",         "EQ",         "JMP",   "JEQ",         "JNE",  "PRINT",
-    "PRINT_CONST", "RET",        "HALT",  NULL};
+    "LOAD",       "LOAD_CONST",  "STORE", "STORE_CONST", "CALL", "PUSH",
+    "PUSH_CONST", "ADD",         "SUB",   "MUL",         "DIV",  "DUP",
+    "INC",        "EQ",          "JMP",   "JEQ",         "JNE",  "MAKE_TUPLE",
+    "PRINT",      "PRINT_CONST", "RET",   "HALT",        NULL};
 
 static const char *tokens[] = {"TOKEN_LABEL",
                                "TOKEN_INSTR",
@@ -378,6 +378,8 @@ static Instruction_ID parse_instruction(const char *str)
         return OP_JMP;
     if (strncasecmp(str, "JNE", 3) == 0)
         return OP_JNE;
+    if (strncasecmp(str, "MAKE_TUPLE", 10) == 0)
+        return OP_MAKE_TUPLE;
     if (strncasecmp(str, "JEQ", 3) == 0)
         return OP_JEQ;
     if (strncasecmp(str, "RET", 3) == 0)
@@ -551,7 +553,8 @@ void asm_disassemble(const Byte_Code *bc)
             case OP_JEQ:
             case OP_LOAD_CONST:
             case OP_STORE_CONST:
-                printf(" [%04llu]", bc->code_segment->data[++i]);
+                // printf(" [%04llu]", bc->code_segment->data[++i]);
+                printf(" [0x%02llX]", bc->code_segment->data[++i]);
                 break;
             default:
                 printf(" %04llu", bc->code_segment->data[++i]);

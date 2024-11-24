@@ -1,11 +1,13 @@
+#include "assembler.h"
 #include "bytecode.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
-#define STACK_SIZE 256
+#define STACK_SIZE  256
 #define MEMORY_SIZE 65535
 
 typedef enum { SUCCESS, E_DIV_BY_ZERO, E_UNKNOWN_INSTRUCTION } Interpret_Result;
@@ -27,62 +29,100 @@ typedef struct {
 
 static Vm vm = {.ip = NULL, .stack_top = NULL, .cstack_top = NULL};
 
-static void vm_init(void) {
+static void vm_init(void)
+{
     memset(vm.stack, 0x00, STACK_SIZE * sizeof(Word));
     memset(vm.memory, 0x00, MEMORY_SIZE * sizeof(Word));
     memset(vm.call_stack, 0x00, STACK_SIZE * sizeof(Word));
-    vm.ip = NULL;
-    vm.stack_top = NULL;
+    vm.ip         = NULL;
+    vm.stack_top  = NULL;
     vm.cstack_top = NULL;
 }
 
-static void vm_reset(Word *bytecode) {
-    vm = (Vm){
-        .stack_top = vm.stack, .cstack_top = vm.call_stack, .ip = bytecode};
+static void vm_reset(Byte_Code *bc)
+{
+    Word *bytecode = bc_code(bc);
+    vm             = (Vm){.stack_top  = vm.stack,
+                          .cstack_top = vm.call_stack,
+                          .ip         = bytecode + bc->entry_point};
+
+    for (size_t i = 0; i < bc->data_segment->length; ++i) {
+        if (bc->data_segment->data[i].type == DT_CONSTANT) {
+            vm.memory[bc->data_segment->data[i].address] =
+                bc->data_segment->data[i].as_int;
+        } else {
+            for (size_t j = 0; j < strlen(bc->data_segment->data[i].as_str);
+                 ++j)
+                vm.memory[bc->data_segment->data[i].address + j] =
+                    bc->data_segment->data[i].as_str[j];
+        }
+    }
 }
 
-#define vm_next() (*vm.ip++)
+#define vm_next()      (*vm.ip++)
 #define vm_push(value) (*vm.stack_top++ = (value))
-#define vm_pop() (*--vm.stack_top)
-#define vm_tos() (vm.stack_top - 1)
-#define vm_peek() (*(vm.stack_top - 1))
+#define vm_pop()       (*--vm.stack_top)
+#define vm_tos()       (vm.stack_top - 1)
+#define vm_peek()      (*(vm.stack_top - 1))
 
-// static void vm_print_stack(void) {
-//     printf("=======");
-//     for (int i = 0; i < STACK_SIZE; ++i) {
-//         printf("%llu\n", vm.stack[i]);
+// static void vm_print_stack(void)
+// {
+//     printf("[");
+//     Word *sp = vm.stack;
+//     while (sp != vm.stack_top) {
+//         printf("%llu,", *sp);
+//         ++sp;
 //     }
+//     printf("]\n");
 // }
 
-Interpret_Result vm_interpret(Byte_Code *bc) {
+static bool string_pointer(Word value) { return value >= DATA_STRING_OFFSET; }
+
+static void print_string_from_memory(Word address)
+{
+    // Start at the memory address
+    Word current_cell = vm.memory[address];
+
+    // Traverse the memory until a null terminator (0) is found
+    while (current_cell != 0) {
+        char ch =
+            (char)(current_cell & 0xFF);   // Extract the least significant byte
+        putchar(ch);                       // Print the character
+        address++;                         // Move to the next memory cell
+        current_cell = vm.memory[address]; // Read the next cell
+    }
+}
+
+Interpret_Result vm_interpret(Byte_Code *bc)
+{
     Word *bytecode = bc_code(bc);
-    vm_reset(bytecode);
+    vm_reset(bc);
     size_t pc = 0;
 
     for (;;) {
         switch (vm_next()) {
         case OP_LOAD: {
-            uint64_t addr = vm_pop();
+            Word addr = vm_pop();
             vm_push(vm.memory[addr]);
             pc++;
             break;
         }
-        case OP_LOADI: {
-            uint64_t addr = vm_next();
+        case OP_LOAD_CONST: {
+            Word addr = vm_next();
             vm_push(vm.memory[addr]);
             pc += 2;
             break;
         }
         case OP_STORE: {
-            uint64_t addr = vm_pop();
-            uint64_t value = vm_pop();
+            Word addr       = vm_pop();
+            Word value      = vm_pop();
             vm.memory[addr] = value;
             pc++;
             break;
         }
-        case OP_STOREI: {
-            uint64_t value = vm_pop();
-            uint64_t addr = vm_next();
+        case OP_STORE_CONST: {
+            Word value      = vm_pop();
+            Word addr       = vm_next();
             vm.memory[addr] = value;
             pc += 2;
             break;
@@ -91,43 +131,46 @@ Interpret_Result vm_interpret(Byte_Code *bc) {
             Word addr = vm_next();
             pc += 2;
             *vm.cstack_top++ = pc;
-            pc = addr;
-            vm.ip = bytecode + addr;
+            pc               = addr;
+            vm.ip            = bytecode + addr;
             break;
         }
         case OP_PUSH: {
-            uint64_t arg = vm_next();
-            vm_push(bc_constant(bc, arg));
+            Word arg = vm_next();
+            // Assume PUSH can be used only for data pointers for now
+            if (string_pointer(arg))
+                vm_push(arg);
+            else
+                vm_push(vm.memory[arg]);
             pc += 2;
             break;
         }
-        case OP_PUSHI: {
-            uint64_t arg = vm_next();
+        case OP_PUSH_CONST: {
+            Word arg = vm_next();
             vm_push(arg);
             pc += 2;
             break;
         }
         case OP_ADD: {
-            uint64_t right = vm_pop();
+            Word right = vm_pop();
             *vm_tos() += right;
             pc++;
             break;
         }
         case OP_SUB: {
-            uint64_t right = vm_pop();
-            printf("%lld -  %lld \n", *vm_tos(), right);
+            Word right = vm_pop();
             *vm_tos() -= right;
             pc++;
             break;
         }
         case OP_MUL: {
-            uint64_t right = vm_pop();
+            Word right = vm_pop();
             *vm_tos() *= right;
             pc++;
             break;
         }
         case OP_DIV: {
-            uint64_t right = vm_pop();
+            Word right = vm_pop();
             if (right == 0)
                 return E_DIV_BY_ZERO;
             *vm_tos() /= right;
@@ -145,7 +188,7 @@ Interpret_Result vm_interpret(Byte_Code *bc) {
             break;
         }
         case OP_EQ: {
-            uint64_t arg = vm_pop();
+            Word arg  = vm_pop();
             *vm_tos() = vm_peek() == arg;
             pc++;
             break;
@@ -159,8 +202,8 @@ Interpret_Result vm_interpret(Byte_Code *bc) {
             pc++;
             if (vm_peek()) {
                 (void)vm_pop();
-                vm.ip = bytecode + vm_next();
-                pc++;
+                pc    = vm_next();
+                vm.ip = bytecode + pc;
             }
             break;
         }
@@ -168,20 +211,32 @@ Interpret_Result vm_interpret(Byte_Code *bc) {
             pc++;
             if (!vm_peek()) {
                 (void)vm_pop();
-                vm.ip = bytecode + vm_next();
-                pc++;
+                pc    = vm_next();
+                vm.ip = bytecode + pc;
             }
             break;
-
         case OP_PRINT: {
-            printf("%lli\n", vm_pop());
+            Word address = vm_pop();
+            if (string_pointer(address)) {
+                print_string_from_memory(address);
+            } else {
+                printf("%lli", address);
+            }
+            fflush(stdout);
+            pc++;
+            break;
+        }
+        case OP_PRINT_CONST: {
+            Word address = vm_pop();
+            printf("%lli", address);
+            fflush(stdout);
             pc++;
             break;
         }
         case OP_RET: {
             Word addr = *(--vm.cstack_top);
-            vm.ip = bytecode + addr;
-            pc = addr;
+            vm.ip     = bytecode + addr;
+            pc        = addr;
             break;
         }
         case OP_HALT:
@@ -199,20 +254,19 @@ exit:
     return SUCCESS;
 }
 
-int main(void) {
+int main(void)
+{
 
     vm_init();
 
-    Byte_Code *bc = bc_load("examples/test.atom");
+    Byte_Code *bc = asm_compile("examples/fib.atom", 1);
     if (!bc)
         abort();
 
-    bc_disassemble(bc);
+    asm_disassemble(bc);
 
     if (vm_interpret(bc) < 0)
         abort();
-
-    // vm_print_stack();
 
     bc_free(bc);
 

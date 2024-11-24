@@ -63,6 +63,7 @@ Byte_Code *bc_create(void)
     if (!bc)
         return NULL;
 
+    bc->entry_point  = 0;
     bc->code_segment = word_segment_create();
     if (!bc->code_segment)
         goto error;

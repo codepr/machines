@@ -6,9 +6,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define DATA_OFFSET        1024
-#define DATA_STRING_OFFSET 2048
-
 // Dynamic array helpers
 
 #define da_init(da, capacity)                                                  \
@@ -38,18 +35,20 @@
         (da)->data[(da)->length++] = (item);                                   \
     } while (0)
 
-#define LABEL_SIZE   64
-#define LABELS_TOTAL 128
+#define LABEL_SIZE         64
+#define LABELS_TOTAL       128
+#define DATA_OFFSET        1024
+#define DATA_STRING_OFFSET 2048
 
 typedef uint64_t Word;
 typedef enum {
     OP_LOAD,
-    OP_LOAD_IMM,
+    OP_LOAD_CONST,
     OP_STORE,
-    OP_STORE_IMM,
+    OP_STORE_CONST,
     OP_CALL,
     OP_PUSH,
-    OP_PUSH_IMM,
+    OP_PUSH_CONST,
     OP_ADD,
     OP_SUB,
     OP_MUL,
@@ -61,7 +60,7 @@ typedef enum {
     OP_JEQ,
     OP_JNE,
     OP_PRINT,
-    OP_PRINT_IMM,
+    OP_PRINT_CONST,
     OP_RET,
     OP_HALT
 } Instruction_ID;
@@ -97,6 +96,7 @@ typedef struct data_segment {
 } Data_Segment;
 
 typedef struct bytecode {
+    size_t entry_point;
     Word_Segment *code_segment;
     Data_Segment *data_segment;
     Labels *labels;

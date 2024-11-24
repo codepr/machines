@@ -39,10 +39,10 @@ typedef enum { DATA_SECTION, MAIN_SECTION } Section;
 //  These static maps are used to determine the token types during the lexical
 //  analysis of the source code
 const char *const instructions_table[] = {
-    "LOAD",      "LOAD_IMM", "STORE", "STORE_IMM", "CALL", "PUSH",
-    "PUSH_IMM",  "ADD",      "SUB",   "MUL",       "DIV",  "DUP",
-    "INC",       "EQ",       "JMP",   "JEQ",       "JNE",  "PRINT",
-    "PRINT_IMM", "RET",      "HALT",  NULL};
+    "LOAD",        "LOAD_CONST", "STORE", "STORE_CONST", "CALL", "PUSH",
+    "PUSH_CONST",  "ADD",        "SUB",   "MUL",         "DIV",  "DUP",
+    "INC",         "EQ",         "JMP",   "JEQ",         "JNE",  "PRINT",
+    "PRINT_CONST", "RET",        "HALT",  NULL};
 
 static const char *tokens[] = {"TOKEN_LABEL",
                                "TOKEN_INSTR",
@@ -348,18 +348,18 @@ static inline struct token *parser_next(struct parser *p)
 // instruction
 static Instruction_ID parse_instruction(const char *str)
 {
-    if (strncasecmp(str, "LOAD_IMM", 8) == 0)
-        return OP_LOAD_IMM;
+    if (strncasecmp(str, "LOAD_CONST", 10) == 0)
+        return OP_LOAD_CONST;
     if (strncasecmp(str, "LOAD", 4) == 0)
         return OP_LOAD;
-    if (strncasecmp(str, "STORE_IMM", 9) == 0)
-        return OP_STORE_IMM;
+    if (strncasecmp(str, "STORE_CONST", 11) == 0)
+        return OP_STORE_CONST;
     if (strncasecmp(str, "STORE", 5) == 0)
         return OP_STORE;
     if (strncasecmp(str, "CALL", 4) == 0)
         return OP_CALL;
-    if (strncasecmp(str, "PUSH_IMM", 8) == 0)
-        return OP_PUSH_IMM;
+    if (strncasecmp(str, "PUSH_CONST", 10) == 0)
+        return OP_PUSH_CONST;
     if (strncasecmp(str, "PUSH", 4) == 0)
         return OP_PUSH;
     if (strncasecmp(str, "ADD", 3) == 0)
@@ -386,8 +386,8 @@ static Instruction_ID parse_instruction(const char *str)
         return OP_DUP;
     if (strncasecmp(str, "EQ", 2) == 0)
         return OP_EQ;
-    if (strncasecmp(str, "PRINT_IMM", 9) == 0)
-        return OP_PRINT_IMM;
+    if (strncasecmp(str, "PRINT_CONST", 11) == 0)
+        return OP_PRINT_CONST;
     if (strncasecmp(str, "PRINT", 5) == 0)
         return OP_PRINT;
     if (strncasecmp(str, "HALT", 4) == 0)
@@ -395,7 +395,7 @@ static Instruction_ID parse_instruction(const char *str)
     return -1;
 }
 
-uint64_t parse_constant(const char *value)
+static uint64_t parse_constant(const char *value)
 {
     char *endptr;
     // To distinguish success/failure after call
@@ -416,9 +416,6 @@ uint64_t parse_constant(const char *value)
 
     return val;
 }
-/*
- * MAIN EXPOSED FUNCTION
- */
 
 static void parser_init(struct parser *p, const struct token_list *tokens)
 {
@@ -453,38 +450,37 @@ static Byte_Code *parser_run(struct parser *p)
     while (parser_peek(p)->type != TOKEN_EOF) {
         switch (curr->type) {
         case TOKEN_ADDRESS:
-            if (curr->section == DATA_SECTION) {
-                Data_Record record = {.address = parse_constant(curr->value)};
-                curr               = parser_next(p);
-                if (curr->type == TOKEN_STRING) {
-                    if (record.address < DATA_STRING_OFFSET) {
-                        bc_free(bc);
-                        parser_panic(
-                            "data offset must start at %d, found %lld at "
-                            "line %ld\n",
-                            DATA_STRING_OFFSET, record.address, p->lines);
-                    }
-                    record.type = DT_STRING;
-                    strncpy(record.as_str, curr->value, strlen(curr->value));
-                } else if (curr->type == TOKEN_CONSTANT) {
-                    if (record.address < DATA_OFFSET) {
-                        bc_free(bc);
-                        parser_panic(
-                            "data offset must start at %d, found %lld at "
-                            "line %ld\n",
-                            DATA_OFFSET, record.address, p->lines);
-                    }
-                    record.type   = DT_CONSTANT;
-                    record.as_int = parse_constant(curr->value);
-                } else {
+            if (curr->section != DATA_SECTION)
+                break;
+            Data_Record record = {.address = parse_constant(curr->value)};
+            curr               = parser_next(p);
+            if (curr->type == TOKEN_STRING) {
+                if (record.address < DATA_STRING_OFFSET) {
                     bc_free(bc);
-                    parser_panic(
-                        "unexpected token in .data section %s at line %ld\n",
-                        curr->value, p->lines);
+                    parser_panic("data offset must start at %d, found %lld at "
+                                 "line %ld\n",
+                                 DATA_STRING_OFFSET, record.address, p->lines);
                 }
-
-                da_push(bc->data_segment, record);
+                record.type = DT_STRING;
+                strncpy(record.as_str, curr->value, strlen(curr->value));
+            } else if (curr->type == TOKEN_CONSTANT) {
+                if (record.address < DATA_OFFSET) {
+                    bc_free(bc);
+                    parser_panic("data offset must start at %d, found %lld at "
+                                 "line %ld\n",
+                                 DATA_OFFSET, record.address, p->lines);
+                }
+                record.type   = DT_CONSTANT;
+                record.as_int = parse_constant(curr->value);
+            } else {
+                bc_free(bc);
+                parser_panic(
+                    "unexpected token in .data section %s at line %ld\n",
+                    curr->value, p->lines);
             }
+
+            da_push(bc->data_segment, record);
+
             break;
         case TOKEN_CONSTANT: {
             // Address
@@ -517,6 +513,10 @@ static Byte_Code *parser_run(struct parser *p)
     return bc;
 }
 
+/*
+ * MAIN EXPOSED FUNCTION
+ */
+
 void asm_disassemble(const Byte_Code *bc)
 {
     size_t i = 0;
@@ -536,7 +536,7 @@ void asm_disassemble(const Byte_Code *bc)
     printf(".main\n");
     i = 0;
     while (i < bc->code_segment->length) {
-        printf("\t%04li %-9s", i,
+        printf("\t%04li %-11s", i,
                instructions_table[bc->code_segment->data[i]]);
         if (bc_nary_instruction(bc->code_segment->data[i])) {
             switch (bc->code_segment->data[i]) {
@@ -549,8 +549,8 @@ void asm_disassemble(const Byte_Code *bc)
             case OP_JMP:
             case OP_JNE:
             case OP_JEQ:
-            case OP_LOAD_IMM:
-            case OP_STORE_IMM:
+            case OP_LOAD_CONST:
+            case OP_STORE_CONST:
                 printf(" [%04llu]", bc->code_segment->data[++i]);
                 break;
             default:

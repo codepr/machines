@@ -42,8 +42,9 @@ static void vm_init(void)
 static void vm_reset(Byte_Code *bc)
 {
     Word *bytecode = bc_code(bc);
-    vm             = (Vm){
-                    .stack_top = vm.stack, .cstack_top = vm.call_stack, .ip = bytecode};
+    vm             = (Vm){.stack_top  = vm.stack,
+                          .cstack_top = vm.call_stack,
+                          .ip         = bytecode + bc->entry_point};
 
     for (size_t i = 0; i < bc->data_segment->length; ++i) {
         if (bc->data_segment->data[i].type == DT_CONSTANT) {
@@ -54,12 +55,6 @@ static void vm_reset(Byte_Code *bc)
                  ++j)
                 vm.memory[bc->data_segment->data[i].address + j] =
                     bc->data_segment->data[i].as_str[j];
-            // write(stdout, "--->(%lld) %s\n",
-            // bc->data_segment->data[i].address,
-            //        (char *)&vm.memory[bc->data_segment->data[i].address]);
-            // memcpy(vm.memory + bc->data_segment->data[i].address,
-            //        bc->data_segment->data[i].as_str,
-            //        strlen(bc->data_segment->data[i].as_str));
         }
     }
 }
@@ -72,18 +67,16 @@ static void vm_reset(Byte_Code *bc)
 
 // static void vm_print_stack(void)
 // {
-//     printf("=======");
-//     for (int i = 0; i < STACK_SIZE; ++i) {
-//         printf("%llu\n", vm.stack[i]);
+//     printf("[");
+//     Word *sp = vm.stack;
+//     while (sp != vm.stack_top) {
+//         printf("%llu,", *sp);
+//         ++sp;
 //     }
+//     printf("]\n");
 // }
 
 static bool string_pointer(Word value) { return value >= DATA_STRING_OFFSET; }
-
-// static char *resolve_pointer(Word address)
-// {
-//     return (char *)&vm.memory[address];
-// }
 
 static void print_string_from_memory(Word address)
 {
@@ -114,7 +107,7 @@ Interpret_Result vm_interpret(Byte_Code *bc)
             pc++;
             break;
         }
-        case OP_LOAD_IMM: {
+        case OP_LOAD_CONST: {
             Word addr = vm_next();
             vm_push(vm.memory[addr]);
             pc += 2;
@@ -127,7 +120,7 @@ Interpret_Result vm_interpret(Byte_Code *bc)
             pc++;
             break;
         }
-        case OP_STORE_IMM: {
+        case OP_STORE_CONST: {
             Word value      = vm_pop();
             Word addr       = vm_next();
             vm.memory[addr] = value;
@@ -152,7 +145,7 @@ Interpret_Result vm_interpret(Byte_Code *bc)
             pc += 2;
             break;
         }
-        case OP_PUSH_IMM: {
+        case OP_PUSH_CONST: {
             Word arg = vm_next();
             vm_push(arg);
             pc += 2;
@@ -233,7 +226,7 @@ Interpret_Result vm_interpret(Byte_Code *bc)
             pc++;
             break;
         }
-        case OP_PRINT_IMM: {
+        case OP_PRINT_CONST: {
             Word address = vm_pop();
             printf("%lli", address);
             fflush(stdout);
@@ -274,8 +267,6 @@ int main(void)
 
     if (vm_interpret(bc) < 0)
         abort();
-
-    // vm_print_stack();
 
     bc_free(bc);
 

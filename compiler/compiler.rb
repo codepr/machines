@@ -331,7 +331,7 @@ class Compiler
   end
 
   def generate_integer_asm(node)
-    asm = "    %04d PUSH_IMM #{node.value}" % @pc
+    asm = "    %04d PUSH_CONST #{node.value}" % @pc
     @pc += 2
     asm
   end
@@ -347,6 +347,7 @@ def compile(source)
   source_name = (source.split(/\//)[-1]).split(/\./)[0]
   tokens = Lexer.new(File.read(source)).tokenize()
   tree = Parser.new(source_name, tokens).parse
+  tree.print
   puts Compiler.new.run(tree)
 end
 

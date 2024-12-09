@@ -289,6 +289,7 @@ class Compiler
 
   def generate_ast_asm(node)
     asm = node.ast.map { |node| run(node) }
+    asm.unshift(".text\n")
     asm.unshift("# アトム VM target code - #{node.source_name}.atom\n")
     asm.join("\n")
   end
@@ -302,6 +303,8 @@ class Compiler
   def generate_def_asm(node)
     asm = node.body.map { |stmt| run(stmt) }
     asm.unshift("#{node.name}:")
+    asm.push("    %04d RET\n" % @pc)
+    @pc += 1
     asm.join("\n")
   end
 
@@ -351,4 +354,4 @@ def compile(source)
   puts Compiler.new.run(tree)
 end
 
-compile("lisp/basicmath.lisp")
+compile("basicmath.lisp")

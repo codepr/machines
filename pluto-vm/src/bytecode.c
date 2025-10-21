@@ -99,7 +99,6 @@ Byte_Code *bc_create(void)
         goto data_error;
 
     bc->data_addr = DATA_OFFSET;
-    bc->data_addr = 0;
 
     return bc;
 

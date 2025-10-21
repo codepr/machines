@@ -26,3 +26,4 @@ aasm
 *.S
 atom-vm/aasm
 atom-vm/*.S
+pluto-vm

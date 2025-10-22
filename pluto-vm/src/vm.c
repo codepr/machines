@@ -112,8 +112,12 @@ static Exec_Result execute(VM *vm, struct instruction_line *instr)
     case OP_PSH: {
         if (instr->sem & IS_DST_REG)
             *vm->sp++ = vm->r[instr->dst];
+        else if (instr->sem & IS_SRC_REG)
+            *vm->sp++ = vm->r[instr->src];
         else if (instr->sem & IS_DST_MEM)
             *vm->sp++ = vm->memory[instr->dst];
+        else if (instr->sem & IS_SRC_MEM)
+            *vm->sp++ = vm->memory[instr->src];
         else if (instr->sem & IS_SRC_IMM)
             *vm->sp++ = instr->src;
 
@@ -282,6 +286,7 @@ static Exec_Result execute(VM *vm, struct instruction_line *instr)
             break;
         // STDOUT
         case 1:
+            printf("Content: %llu - %llu\n", vm->r[R_CX], vm->r[R_DX]);
             syscall_write(vm->r[R_BX], &vm->memory[vm->r[R_CX]],
                           vm->r[R_DX] * sizeof(qword));
             fflush(stdout);

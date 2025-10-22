@@ -263,12 +263,17 @@ exit:
     return SUCCESS;
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
+
+    if (argc < 2)
+        abort();
+
+    const char *source_path = argv[1];
 
     vm_init();
 
-    Byte_Code *bc = asm_compile("examples/tuple.atom", 1);
+    Byte_Code *bc = asm_compile(source_path, 1);
     if (!bc)
         abort();
 

@@ -1,17 +1,17 @@
 ; Print a string, test an uncoditional forward jump (goto)
 
 .data
-msg: db "Hello", 5
+    msg: db "Hello", 5
 
 .main
 ; Initialize variables
-MOV AX, 1   ; Set syscall to write
-MOV BX, 1   ; Set file descriptor to STDOUT
-MOV CX, msg ; Set label address to CX
-MOV DX, 6   ; Set bytes len to 6 which means "Hello" + nul char
-SYSCALL     ; Interrupt and make system call
-JMP exit
-PSH 100     ; This is never reached
-POP BX      ; This is never reached
+    MOV AX, 1   ; Set syscall to write
+    MOV BX, 1   ; Set file descriptor to STDOUT
+    MOV CX, msg ; Set label address to CX
+    MOV DX, 6   ; Set bytes len to 6 which means "Hello" + nul char
+    SYSCALL     ; Interrupt and make system call
+    JMP exit
+    PSH 100     ; This is never reached
+    POP BX      ; This is never reached
 exit:
-HLT
+    HLT

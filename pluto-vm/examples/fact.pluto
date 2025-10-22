@@ -2,31 +2,31 @@
 ; Factorial(10)
 
 .data
-msg: db "Insert input: ", 14
-buf: db 1024, 10        ; reserve 1024 bytes for input
+    msg: db "Insert input: ", 14
+    buf: db 1024, 10        ; reserve 1024 bytes for input
 
 .main
-; Initialize variables
-mov ax, 10          ; Initialize starting value 10
-mov bx, 9           ; Initialize second value to AX - 1
+    ; Initialize variables
+    mov ax, 10          ; Initialize starting value 10
+    mov bx, 9           ; Initialize second value to AX - 1
 
 ; Factorial loop
 loop:
-mul ax, bx       ; ax = ax * ax - 1
-dec bx           ; bx = bx - 1 decrement the counter
-cmp bx, 0        ; Check if 0 is reached
-jne loop         ; Jump back to loop if bx is greater than 0
-mov bx, 1
-mov cx, msg
-mov dx, 14
-syscall
-mov bx, 0
-mov cx, buf
-mov dx, 0xff
-syscall
-mov bx, 1
-mov cx, buf
-mov dx, 3
-syscall
+    mul ax, bx       ; ax = ax * ax - 1
+    dec bx           ; bx = bx - 1 decrement the counter
+    cmp bx, 0        ; Check if 0 is reached
+    jne loop         ; Jump back to loop if bx is greater than 0
+    mov bx, 1
+    mov cx, msg
+    mov dx, 14
+    syscall
+    mov bx, 0
+    mov cx, buf
+    mov dx, 0xff
+    syscall
+    mov bx, 1
+    mov cx, buf
+    mov dx, 3
+    syscall
 
-hlt              ; Halt execution
+    hlt              ; Halt execution

@@ -1,33 +1,44 @@
 ; Multiply two numbers
 
 .data
-num1: dw 1
-num2: dw 1
-msg: "Times 64", 8
+    num1: dw 1
+    num2: dw 1
+    prompt1: "Enter num1 ", 11
+    prompt2: "Enter num2 ", 11
+    msg: "Times 64", 8
 
 .main
-; Initialize variables
-mov bx, 0          ; read call
-mov cx, num1       ; Initialize to address of the num1 reserved qword space
-mov dx, 1
-syscall
-mov bx, 64         ; atoi call
-syscall            ; now ax contains the integer value of num1
-psh ax             ; save ax content
-mov bx, 0          ; read call
-mov cx, num2       ; Initialize to address of the num2 reserved qword space
-mov dx, 1
-syscall
-mov bx, 64         ; atoi call
-syscall            ; now ax contains the integer value of num1
-pop dx             ; pop the stack (ax) into dx
-psh 64
-mul ax, dx         ; multiply registers
-mov bx, 1
-mov cx, msg
-mov dx, 8
-syscall
-pop cx
-mul ax, cx
-inc ax
-hlt
+    ; prompt for input
+    mov bx, 1          ; write call
+    mov cx, prompt1
+    mov dx, 11
+    syscall
+    ; Initialize variables
+    mov bx, 0          ; read call
+    mov cx, num1       ; Initialize to address of the num1 reserved qword space
+    mov dx, 1
+    syscall
+    mov bx, 64         ; atoi call
+    syscall            ; now ax contains the integer value of num1
+    psh ax             ; save ax content
+    mov bx, 1          ; write call
+    mov cx, prompt2
+    mov dx, 11
+    syscall
+    mov bx, 0          ; read call
+    mov cx, num2       ; Initialize to address of the num2 reserved qword space
+    mov dx, 1
+    syscall
+    mov bx, 64         ; atoi call
+    syscall            ; now ax contains the integer value of num1
+    pop dx             ; pop the stack (ax) into dx
+    psh 64
+    mul ax, dx         ; multiply registers
+    mov bx, 1
+    mov cx, msg
+    mov dx, 8
+    syscall
+    pop cx
+    mul ax, cx
+    inc ax
+    hlt

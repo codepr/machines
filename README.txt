@@ -121,4 +121,3 @@ This project demonstrates:
 2. Toolchain: From source code to execution
 3. Language Implementation: Lexing, parsing, compilation, and code generation
 4. Low-Level Programming: Memory management, bytecode design, instruction encoding
-5. Systems Programming: C implementations with strict correctness guarantees

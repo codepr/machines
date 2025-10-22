@@ -104,7 +104,6 @@ static void parser_append_string(struct parser *p, Byte_Code *bc,
     for (size_t i = 0; i < data_len; ++i) {
         bc->data_segment->data[bc->data_segment->length++] = data[i];
     }
-    bc->data_segment->data[bc->data_segment->length++] = '\0';
 
     p->label_list.base_offset += data_len;
 }

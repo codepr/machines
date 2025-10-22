@@ -286,7 +286,6 @@ static Exec_Result execute(VM *vm, struct instruction_line *instr)
             break;
         // STDOUT
         case 1:
-            printf("Content: %llu - %llu\n", vm->r[R_CX], vm->r[R_DX]);
             syscall_write(vm->r[R_BX], &vm->memory[vm->r[R_CX]],
                           vm->r[R_DX] * sizeof(qword));
             fflush(stdout);

@@ -66,6 +66,10 @@ typedef enum {
     OP_HALT
 } Instruction_ID;
 
+//  These static maps are used to determine the token types during the lexical
+//  analysis of the source code
+extern const char *const instructions_table[];
+
 typedef struct word_segment {
     Word *data;
     size_t length;
@@ -78,7 +82,18 @@ typedef struct labels {
 } Labels;
 
 #define DATA_STRING_SIZE 512
-typedef enum { DT_CONSTANT, DT_STRING } Data_Type;
+typedef enum { DT_CONSTANT, DT_STRING, DT_BUFFER } Data_Type;
+typedef enum {
+    D_DB,
+    D_DW,
+    D_DD,
+    D_DQ,
+    D_RB,
+    D_RW,
+    D_RD,
+    D_RQ,
+    NUM_DIRECTIVES
+} Directive;
 
 // Tagged-union for different kind of constant data
 typedef struct data_record {
@@ -94,6 +109,9 @@ typedef struct data_segment {
     Data_Record *data;
     size_t length;
     size_t capacity;
+    size_t rd_data_addr_offset;
+    size_t rw_data_addr_offset;
+    size_t rd_string_addr_offset;
 } Data_Segment;
 
 typedef struct bytecode {

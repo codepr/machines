@@ -1,11 +1,11 @@
 CC=gcc
 CFLAGS=-Wall -Werror -pedantic -ggdb -std=c11 -fsanitize=address -fsanitize=undefined -fno-omit-frame-pointer -pg
 
-SRC = src/vm.c src/bytecode.c src/assembler.c
+SRC = src/vm.c src/bytecode.c src/assembler.c src/parser.c
 OBJ = $(SRC:.c=.o)
 EXEC = atom-vm
 
-ASM_SRC = src/aasm.c src/bytecode.c src/assembler.c
+ASM_SRC = src/aasm.c src/bytecode.c src/assembler.c src/parser.c
 ASM_OBJ = $(ASM_SRC:.c=.o)
 ASM_EXEC = aasm
 

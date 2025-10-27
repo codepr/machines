@@ -1,0 +1,30 @@
+.data
+    msg: DB "Hello\n"
+
+.PROC basics:
+    PUSH_CONST 5
+    PUSH_CONST 10
+    PUSH_CONST 62
+    PUSH_CONST 18
+    ADD
+    PUSH_CONST 71
+    PUSH_CONST 12
+    ADD
+    MUL
+    MUL
+    RET
+
+.PROC addendum:
+    PUSH_CONST 21
+    RET
+
+.main
+    PUSH_CONST 15
+    CALL basics
+    CALL addendum
+    ADD
+    DUP
+    ADD
+    PUSH msg
+    PRINT
+    HALT

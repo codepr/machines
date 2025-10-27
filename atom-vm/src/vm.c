@@ -50,11 +50,18 @@ static void vm_reset(Byte_Code *bc)
         if (bc->data_segment->data[i].type == DT_CONSTANT) {
             vm.memory[bc->data_segment->data[i].address] =
                 bc->data_segment->data[i].as_int;
-        } else {
+        } else if (bc->data_segment->data[i].type == DT_STRING) {
             for (size_t j = 0; j < strlen(bc->data_segment->data[i].as_str);
                  ++j)
                 vm.memory[bc->data_segment->data[i].address + j] =
                     bc->data_segment->data[i].as_str[j];
+        } else if (bc->data_segment->data[i].type == DT_BUFFER) {
+            // Buffer space - zero out the region
+            Word address = bc->data_segment->data[i].address;
+            Word size    = bc->data_segment->data[i].as_int;
+            for (Word j = 0; j < size; ++j) {
+                vm.memory[address + j] = 0;
+            }
         }
     }
 }
@@ -97,7 +104,7 @@ Interpret_Result vm_interpret(Byte_Code *bc)
 {
     Word *bytecode = bc_code(bc);
     vm_reset(bc);
-    size_t pc = 0;
+    size_t pc = bc->entry_point;
 
     for (;;) {
         switch (vm_next()) {
@@ -269,11 +276,19 @@ int main(int argc, char **argv)
     if (argc < 2)
         abort();
 
-    const char *source_path = argv[1];
+    char *source_path = NULL;
+    Byte_Code *bc     = NULL;
+
+    if (strncmp("--", argv[1], 2) == 0) {
+        bc = asm_compile_from_stdin(1);
+    } else {
+        source_path = argv[1];
+        bc          = asm_compile(source_path, 1);
+    }
 
     vm_init();
 
-    Byte_Code *bc = asm_compile(source_path, 1);
+    // Byte_Code *bc = asm_compile(source_path, 1);
     if (!bc)
         abort();
 
@@ -282,6 +297,7 @@ int main(int argc, char **argv)
     if (vm_interpret(bc) < 0)
         abort();
 
+    printf("%llu\n", vm.result);
     bc_free(bc);
 
     return 0;

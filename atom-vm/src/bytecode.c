@@ -3,6 +3,12 @@
 #include <stdio.h>
 #include <string.h>
 
+const char *const instructions_table[] = {
+    "LOAD",       "LOAD_CONST",  "STORE", "STORE_CONST", "CALL", "PUSH",
+    "PUSH_CONST", "ADD",         "SUB",   "MUL",         "DIV",  "DUP",
+    "INC",        "EQ",          "JMP",   "JEQ",         "JNE",  "MAKE_TUPLE",
+    "PRINT",      "PRINT_CONST", "RET",   "HALT",        NULL};
+
 bool bc_nary_instruction(Instruction_ID instr)
 {
     return (instr > OP_LOAD && instr < OP_ADD) ||
@@ -72,7 +78,11 @@ Byte_Code *bc_create(void)
     if (!bc->data_segment)
         goto error;
 
-    bc->labels = labels_create();
+    bc->data_segment->rd_data_addr_offset   = DATA_OFFSET;
+    bc->data_segment->rd_string_addr_offset = DATA_STRING_OFFSET;
+    bc->data_segment->rw_data_addr_offset   = DATA_STRING_OFFSET * 2;
+
+    bc->labels                              = labels_create();
     if (!bc->labels)
         goto error;
 
@@ -105,7 +115,7 @@ static void write_u64(uint8_t *buf, uint64_t val)
     *buf++ = val;
 }
 
-uint64_t read_u64(uint8_t *buf)
+static uint64_t read_u64(uint8_t *buf)
 {
     return ((uint64_t)buf[0] << 56) | ((uint64_t)buf[1] << 48) |
            ((uint64_t)buf[2] << 40) | ((uint64_t)buf[3] << 32) |

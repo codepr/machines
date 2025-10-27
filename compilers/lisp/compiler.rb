@@ -302,7 +302,7 @@ class Compiler
 
   def generate_def_asm(node)
     asm = node.body.map { |stmt| run(stmt) }
-    asm.unshift("#{node.name}:")
+    asm.unshift(".PROC #{node.name}:")
     asm.push("    %04d RET\n" % @pc)
     @pc += 1
     asm.join("\n")
